@@ -6,6 +6,197 @@ import Footer from '@/components/Footer'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
+
+function BodiesTab({ missingReport }) {
+  const [bodies, setBodies] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchBodies = async () => {
+      const { data } = await supabase
+        .from('unidentified_bodies')
+        .select('*')
+        .order('created_at', { ascending: false })
+      setBodies(data || [])
+      setLoading(false)
+    }
+    fetchBodies()
+  }, [])
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Loading...</div>
+
+  return (
+    <div>
+      <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '14px 20px', marginBottom: 20 }}>
+        <p style={{ margin: 0, fontSize: 13, color: '#92400e' }}>
+          🔒 This database is accessible only to verified family members. Photos are blurred. If you believe any record may be your missing person, contact your local police station with the case number.
+        </p>
+      </div>
+
+      {bodies.length === 0 ? (
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '40px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f', marginBottom: 8 }}>No unidentified body records yet</h3>
+          <p style={{ fontSize: 14, color: '#64748b' }}>Records will appear here as field contributors add them.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: 14 }}>
+          {bodies.map(body => {
+            const isMatch = missingReport && body.gender === missingReport.gender
+
+            return (
+              <div key={body.id} style={{ background: '#ffffff', border: `1px solid ${isMatch ? '#fca5a5' : '#e2e8f0'}`, borderRadius: 10, padding: 20, display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+
+                {/* BLURRED PHOTO */}
+                <div style={{ width: 80, height: 80, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #e2e8f0', overflow: 'hidden', filter: body.photo_url ? 'blur(4px)' : 'none' }}>
+                  {body.photo_url ? (
+                    <img src={body.photo_url} alt="Unidentified" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <span style={{ fontSize: 28 }}>👤</span>
+                  )}
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                    <div>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#1e3a5f' }}>Case #{body.case_number || body.id.slice(0, 8).toUpperCase()}</span>
+                      {isMatch && (
+                        <span style={{ marginLeft: 10, background: '#fee2e2', color: '#dc2626', fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20 }}>Possible Match</span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: 12, color: '#94a3b8' }}>Found: {body.found_date}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, marginBottom: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 13, color: '#475569' }}>Gender: {body.gender}</span>
+                    <span style={{ fontSize: 13, color: '#475569' }}>Age: {body.estimated_age_min}-{body.estimated_age_max}</span>
+                    <span style={{ fontSize: 13, color: '#475569' }}>Location: {body.city}, {body.state}</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 13, color: '#64748b', lineHeight: 1.6 }}>{body.description}</p>
+                  <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                    <button style={{ padding: '6px 14px', background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontWeight: 500 }}>View Full Details</button>
+                    <button style={{ padding: '6px 14px', background: '#fff', color: '#475569', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>Not a Match</button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+function EditReportForm({ report, onSaved }) {
+  const [form, setForm] = useState({
+    full_name: report.full_name || '',
+    age: report.age || '',
+    description: report.description || '',
+    city: report.city || '',
+    state: report.state || '',
+    last_seen_date: report.last_seen_date || '',
+    fir_number: report.fir_number || '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  const handleSave = async () => {
+    setSaving(true)
+    setError('')
+    try {
+      const { error } = await supabase
+        .from('missing_persons')
+        .update({
+          full_name: form.full_name,
+          age: parseInt(form.age),
+          description: form.description,
+          city: form.city,
+          state: form.state,
+          last_seen_date: form.last_seen_date,
+          fir_number: form.fir_number,
+        })
+        .eq('id', report.id)
+      if (error) throw error
+      setSaved(true)
+      setTimeout(() => { setSaved(false); onSaved() }, 1500)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleMarkFound = async () => {
+    if (!confirm('Are you sure? This will archive your report.')) return
+    setSaving(true)
+    try {
+      await supabase.from('missing_persons').update({ status: 'resolved' }).eq('id', report.id)
+      onSaved()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const inputStyle = { width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 14, outline: 'none', boxSizing: 'border-box', color: '#1e293b' }
+  const labelStyle = { fontSize: 12, color: '#64748b', fontWeight: 500, display: 'block', marginBottom: 6 }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <label style={labelStyle}>FULL NAME</label>
+        <input value={form.full_name} onChange={e => set('full_name', e.target.value)} style={inputStyle} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div>
+          <label style={labelStyle}>AGE</label>
+          <input value={form.age} onChange={e => set('age', e.target.value)} type="number" style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>LAST SEEN DATE</label>
+          <input value={form.last_seen_date} onChange={e => set('last_seen_date', e.target.value)} type="date" style={inputStyle} />
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div>
+          <label style={labelStyle}>CITY</label>
+          <input value={form.city} onChange={e => set('city', e.target.value)} style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>STATE</label>
+          <select value={form.state} onChange={e => set('state', e.target.value)} style={inputStyle}>
+            {['Andhra Pradesh','Assam','Bihar','Chhattisgarh','Delhi','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal'].map(s => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style={labelStyle}>FIR NUMBER</label>
+        <input value={form.fir_number} onChange={e => set('fir_number', e.target.value)} style={inputStyle} />
+      </div>
+      <div>
+        <label style={labelStyle}>PHYSICAL DESCRIPTION</label>
+        <textarea value={form.description} onChange={e => set('description', e.target.value)} style={{ ...inputStyle, minHeight: 100, resize: 'vertical' }} />
+      </div>
+      {error && <p style={{ color: '#dc2626', fontSize: 13, margin: 0 }}>{error}</p>}
+      {saved && <p style={{ color: '#15803d', fontSize: 13, margin: 0 }}>✓ Saved successfully!</p>}
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: '11px', background: saving ? '#94a3b8' : '#1e3a5f', color: '#fff', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}>
+          {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Changes'}
+        </button>
+        <button onClick={handleMarkFound} disabled={saving} style={{ flex: 1, padding: '11px', background: '#fff5f5', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, fontSize: 14, cursor: 'pointer' }}>
+          Mark as Found ✓
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('overview')
   const router = useRouter()
@@ -186,51 +377,7 @@ useEffect(() => {
 
         {/* BODIES TAB */}
         {activeTab === 'bodies' && (
-          <div>
-            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '14px 20px', marginBottom: 20 }}>
-              <p style={{ margin: 0, fontSize: 13, color: '#92400e' }}>
-                🔒 This database is accessible only to verified family members. Photos are blurred. If you believe any record may be your missing person, contact your local police station with the case number.
-              </p>
-            </div>
-
-            <div style={{ display: 'grid', gap: 14 }}>
-              {[
-                { id: 'MH/2025/001', gender: 'Male', age: '30-40', state: 'Maharashtra', city: 'Mumbai', found: '15 Jan 2025', desc: 'Found near coastal area. Medium height, athletic build. Wearing blue jeans and grey t-shirt.', match: true },
-                { id: 'MH/2025/089', gender: 'Male', age: '28-38', state: 'Maharashtra', city: 'Thane', found: '28 Jan 2025', desc: 'Found near highway. Dark complexion, short hair. No documents found.', match: true },
-                { id: 'UP/2025/034', gender: 'Male', age: '35-45', state: 'Uttar Pradesh', city: 'Lucknow', found: '02 Feb 2025', desc: 'Found near river bank. Wearing white kurta. Medium build.', match: false },
-              ].map(body => (
-                <div key={body.id} style={{ background: '#ffffff', border: `1px solid ${body.match ? '#fca5a5' : '#e2e8f0'}`, borderRadius: 10, padding: 20, display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-
-                  {/* BLURRED PHOTO PLACEHOLDER */}
-                  <div style={{ width: 80, height: 80, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #e2e8f0', filter: 'blur(0px)' }}>
-                    <span style={{ fontSize: 28 }}>👤</span>
-                  </div>
-
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                      <div>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: '#1e3a5f' }}>Case #{body.id}</span>
-                        {body.match && (
-                          <span style={{ marginLeft: 10, background: '#fee2e2', color: '#dc2626', fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20 }}>Possible Match</span>
-                        )}
-                      </div>
-                      <span style={{ fontSize: 12, color: '#94a3b8' }}>Found: {body.found}</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 16, marginBottom: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 13, color: '#475569' }}>Gender: {body.gender}</span>
-                      <span style={{ fontSize: 13, color: '#475569' }}>Age: {body.age}</span>
-                      <span style={{ fontSize: 13, color: '#475569' }}>Location: {body.city}, {body.state}</span>
-                    </div>
-                    <p style={{ margin: 0, fontSize: 13, color: '#64748b', lineHeight: 1.6 }}>{body.desc}</p>
-                    <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-                      <button style={{ padding: '6px 14px', background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontWeight: 500 }}>View Full Details</button>
-                      <button style={{ padding: '6px 14px', background: '#fff', color: '#475569', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>Not a Match</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <BodiesTab missingReport={missingReport} />
         )}
 
         {/* MATCHES TAB */}
@@ -278,31 +425,13 @@ useEffect(() => {
                 + Add Missing Person Report
               </button>
             </div>
-
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 28, maxWidth: 600 }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f', marginBottom: 20, marginTop: 0 }}>Edit Missing Person Report</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {(missingReport ? [
-  { label: 'FULL NAME', value: missingReport.full_name },
-  { label: 'AGE', value: String(missingReport.age) },
-  { label: 'LAST SEEN LOCATION', value: `${missingReport.city}, ${missingReport.state}` },
-  { label: 'DESCRIPTION', value: missingReport.description || '' },
-] : [
-  { label: 'FULL NAME', value: '' },
-  { label: 'AGE', value: '' },
-  { label: 'LAST SEEN LOCATION', value: '' },
-  { label: 'DESCRIPTION', value: '' },
-]).map(field => (
-                  <div key={field.label}>
-                    <label style={{ fontSize: 12, color: '#64748b', fontWeight: 500, display: 'block', marginBottom: 6 }}>{field.label}</label>
-                    <input defaultValue={field.value} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
-                  </div>
-                ))}
-                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                  <button style={{ flex: 2, padding: '11px', background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Save Changes</button>
-                  <button style={{ flex: 1, padding: '11px', background: '#fff5f5', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, fontSize: 14, cursor: 'pointer' }}>Mark as Found ✓</button>
-                </div>
-              </div>
+              {missingReport ? (
+                <EditReportForm report={missingReport} onSaved={() => window.location.reload()} />
+              ) : (
+                <p style={{ color: '#94a3b8', fontSize: 14 }}>No report found. Add one above.</p>
+              )}
             </div>
           </div>
         )}

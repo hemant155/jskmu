@@ -49,24 +49,24 @@ export default function AddMissingPage() {
 
       // Photo upload
 if (photo) {
-  const fileExt = photo.name.split('.').pop()
-  const fileName = `${session.user.id}_${Date.now()}.${fileExt}`
-  const { data: uploadData, error: uploadError } = await supabase.storage
-    .from('missing-photos')
-    .upload(fileName, photo, {
-      cacheControl: '3600',
-      upsert: true
-    })
-  if (uploadError) {
-  console.error('Upload error:', uploadError)
-  // Skip photo, continue without it
-  photo_url = null
-}
-  const { data: urlData } = supabase.storage
-    .from('missing-photos')
-    .getPublicUrl(fileName)
-  photo_url = urlData.publicUrl
-  console.log('Photo uploaded:', photo_url)
+  const uploadFormData = new FormData()
+  uploadFormData.append('file', photo)
+  uploadFormData.append('userId', session.user.id)
+  uploadFormData.append('bucket', 'missing-photos')
+
+  const uploadRes = await fetch('/api/upload', {
+    method: 'POST',
+    body: uploadFormData
+  })
+  const uploadData = await uploadRes.json()
+
+  if (uploadData.success) {
+    photo_url = uploadData.url
+    console.log('Photo uploaded:', photo_url)
+  } else {
+    console.error('Upload failed:', uploadData.error)
+    // Continue without photo
+  }
 }
       // Save to database
       const { error: insertError } = await supabase

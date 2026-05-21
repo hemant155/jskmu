@@ -4,8 +4,10 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 
 export default function SearchPage() {
+  const router = useRouter()
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
@@ -143,7 +145,7 @@ export default function SearchPage() {
         ) : (
           <div style={{ display: 'grid', gap: 14 }}>
             {results.map(person => (
-              <div key={person.id} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 20, display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+              <div key={person.id} onClick={() => router.push(`/missing/${person.id}`)} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 20, display: 'flex', gap: 20, alignItems: 'flex-start', cursor: 'pointer', transition: 'box-shadow 0.2s' }} onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'} onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
                 {/* PHOTO */}
                 <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '2px solid #e2e8f0', overflow: 'hidden' }}>
                   {person.photo_url ? (
