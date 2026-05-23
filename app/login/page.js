@@ -43,17 +43,21 @@ export default function LoginPage() {
       })
       if (error) throw error
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single()
+const { data: profile, error: profileError } = await supabase
+  .from('profiles')
+  .select('role')
+  .eq('id', data.user.id)
+  .single()
 
-      if (profile?.role === 'admin') {
-        router.push('/admin')
-      } else {
-        router.push('/dashboard')
-      }
+console.log('Profile fetched:', profile, 'Error:', profileError)
+
+if (profile?.role === 'admin') {
+  router.push('/admin')
+} else if (profile?.role === 'contributor') {
+  router.push('/contributor')
+} else {
+  router.push('/dashboard')
+}
 
     } catch (err) {
       setErrors({ general: err.message })
