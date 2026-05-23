@@ -26,10 +26,18 @@ const handleRegister = async () => {
   setAuthError('')
   try {
     // 1. Supabase Auth mein user banao
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-    })
+ const { data: authData, error: signUpError } = await supabase.auth.signUp({
+  email: form.email,
+  password: form.password,
+  options: {
+    data: {
+      full_name: form.name,
+      phone: form.phone,
+      role: role,  // 'family' or 'contributor'
+      fir_number: form.firNumber || null,
+    }
+  }
+})
     if (signUpError) throw signUpError
 
     // 2. Profile save karo
