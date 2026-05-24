@@ -317,7 +317,7 @@ useEffect(() => {
             <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={tabStyle(tab.key)}>
               {tab.label}
               {tab.key === 'matches' && (
-                <span style={{ marginLeft: 6, background: '#dc2626', color: '#fff', fontSize: 10, padding: '1px 6px', borderRadius: 10, fontWeight: 700 }}>2</span>
+                {stats.matchesCount > 0 && <span style={{ marginLeft: 6, background: '#dc2626', color: '#fff', fontSize: 10, padding: '1px 6px', borderRadius: 10, fontWeight: 700 }}>{stats.matchesCount}</span>}
               )}
             </button>
           ))}
@@ -331,10 +331,10 @@ useEffect(() => {
         {activeTab === 'overview' && (
           <div>
             {/* ALERT — MATCH FOUND */}
-            <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '16px 20px', marginBottom: 24, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            {stats.matchesCount > 0 && <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '16px 20px', marginBottom: 24, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a', marginTop: 6, flexShrink: 0, animation: 'pulse 2s infinite' }}></div>
               <div>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#15803d' }}>2 Possible Matches Found</p>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#15803d' }}>{stats.matchesCount} Possible Matches Found</p>
                 <p style={{ margin: '4px 0 0', fontSize: 13, color: '#16a34a' }}>
                   Our system has found potential matches for your report. Please review them and contact local police to verify.
                 </p>
@@ -342,7 +342,7 @@ useEffect(() => {
                   View Matches →
                 </button>
               </div>
-            </div>
+            </div>}
 
             {/* STAT CARDS */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
