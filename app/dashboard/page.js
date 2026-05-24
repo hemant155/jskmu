@@ -316,9 +316,9 @@ useEffect(() => {
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={tabStyle(tab.key)}>
               {tab.label}
-              {tab.key === 'matches' && (
-                {stats.matchesCount > 0 && <span style={{ marginLeft: 6, background: '#dc2626', color: '#fff', fontSize: 10, padding: '1px 6px', borderRadius: 10, fontWeight: 700 }}>{stats.matchesCount}</span>}
-              )}
+              {tab.key === 'matches' && stats.matchesCount > 0 && (
+  <span style={{ marginLeft: 6, background: '#dc2626', color: '#fff', fontSize: 10, padding: '1px 6px', borderRadius: 10, fontWeight: 700 }}>{stats.matchesCount}</span>
+)}
             </button>
           ))}
         </div>
@@ -432,11 +432,13 @@ useEffect(() => {
             <p style={{ fontSize: 14, color: '#475569', marginBottom: 20 }}>
               These are algorithmically generated matches based on age, gender, state and physical description. These are not confirmed identifications. Please contact your local police station to verify.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {[
-                { id: 'MH/2025/001', score: 87, age: '30-40', city: 'Mumbai', found: '15 Jan 2025', reason: 'Gender match · Age range match · Same state · Similar physical description' },
-                { id: 'MH/2025/089', score: 74, age: '28-38', city: 'Thane', found: '28 Jan 2025', reason: 'Gender match · Age range match · Neighbouring district' },
-              ].map(match => (
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '40px 24px', textAlign: 'center' }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f', marginBottom: 8 }}>No matches found yet</h3>
+              <p style={{ fontSize: 14, color: '#64748b' }}>Our system continuously scans unidentified body records. You will be notified when a potential match is found.</p>
+            </div>
+          </div>
+        )}
                 <div key={match.id} style={{ background: '#ffffff', border: '1px solid #fca5a5', borderRadius: 10, padding: 24, borderLeft: '4px solid #dc2626' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                     <div>
