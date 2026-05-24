@@ -43,11 +43,8 @@ function BodiesTab({ missingReport }) {
         <div style={{ display: 'grid', gap: 14 }}>
           {bodies.map(body => {
             const isMatch = missingReport && body.gender === missingReport.gender
-
             return (
               <div key={body.id} style={{ background: '#ffffff', border: `1px solid ${isMatch ? '#fca5a5' : '#e2e8f0'}`, borderRadius: 10, padding: 20, display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-
-                {/* BLURRED PHOTO */}
                 <div style={{ width: 80, height: 80, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #e2e8f0', overflow: 'hidden', filter: body.photo_url ? 'blur(4px)' : 'none' }}>
                   {body.photo_url ? (
                     <img src={body.photo_url} alt="Unidentified" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -55,7 +52,6 @@ function BodiesTab({ missingReport }) {
                     <span style={{ fontSize: 28 }}>👤</span>
                   )}
                 </div>
-
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                     <div>
@@ -202,70 +198,68 @@ export default function DashboardPage() {
   const router = useRouter()
 
   const [missingReport, setMissingReport] = useState(null)
-const [loadingReport, setLoadingReport] = useState(true)
+  const [loadingReport, setLoadingReport] = useState(true)
 
-useEffect(() => {
-  const fetchReport = async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    const { data } = await supabase
-      .from('missing_persons')
-      .select('*')
-      .eq('reported_by', session.user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-    if (data) setMissingReport(data)
-    setLoadingReport(false)
-  }
-  fetchReport()
-}, [])
-
-const [stats, setStats] = useState({
-  daysSince: 0,
-  bodiesCount: 0,
-  daysRemaining: 0,
-  matchesCount: 0
-})
-
-useEffect(() => {
-  const fetchStats = async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-
-    // Bodies count
-    const { count: bodiesCount } = await supabase
-      .from('unidentified_bodies')
-      .select('*', { count: 'exact', head: true })
-
-    // Missing report for days calculation
-    const { data: report } = await supabase
-      .from('missing_persons')
-      .select('created_at')
-      .eq('reported_by', session.user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-
-    let daysSince = 0
-    let daysRemaining = 0
-
-    if (report) {
-      const created = new Date(report.created_at)
-      const now = new Date()
-      daysSince = Math.floor((now - created) / (1000 * 60 * 60 * 24))
-      daysRemaining = Math.max(0, 365 - daysSince)
+  useEffect(() => {
+    const fetchReport = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const { data } = await supabase
+        .from('missing_persons')
+        .select('*')
+        .eq('reported_by', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+      if (data) setMissingReport(data)
+      setLoadingReport(false)
     }
+    fetchReport()
+  }, [])
 
-    setStats({
-      daysSince,
-      bodiesCount: bodiesCount || 0,
-      daysRemaining,
-      matchesCount: 0
-    })
-  }
-  fetchStats()
-}, [])
+  const [stats, setStats] = useState({
+    daysSince: 0,
+    bodiesCount: 0,
+    daysRemaining: 0,
+    matchesCount: 0
+  })
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      const { count: bodiesCount } = await supabase
+        .from('unidentified_bodies')
+        .select('*', { count: 'exact', head: true })
+
+      const { data: report } = await supabase
+        .from('missing_persons')
+        .select('created_at')
+        .eq('reported_by', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      let daysSince = 0
+      let daysRemaining = 0
+
+      if (report) {
+        const created = new Date(report.created_at)
+        const now = new Date()
+        daysSince = Math.floor((now - created) / (1000 * 60 * 60 * 24))
+        daysRemaining = Math.max(0, 365 - daysSince)
+      }
+
+      setStats({
+        daysSince,
+        bodiesCount: bodiesCount || 0,
+        daysRemaining,
+        matchesCount: 0
+      })
+    }
+    fetchStats()
+  }, [])
 
   const tabStyle = (tab) => ({
     padding: '10px 20px',
@@ -317,8 +311,8 @@ useEffect(() => {
             <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={tabStyle(tab.key)}>
               {tab.label}
               {tab.key === 'matches' && stats.matchesCount > 0 && (
-  <span style={{ marginLeft: 6, background: '#dc2626', color: '#fff', fontSize: 10, padding: '1px 6px', borderRadius: 10, fontWeight: 700 }}>{stats.matchesCount}</span>
-)}
+                <span style={{ marginLeft: 6, background: '#dc2626', color: '#fff', fontSize: 10, padding: '1px 6px', borderRadius: 10, fontWeight: 700 }}>{stats.matchesCount}</span>
+              )}
             </button>
           ))}
         </div>
@@ -330,27 +324,28 @@ useEffect(() => {
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div>
-            {/* ALERT — MATCH FOUND */}
-            {stats.matchesCount > 0 && <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '16px 20px', marginBottom: 24, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a', marginTop: 6, flexShrink: 0, animation: 'pulse 2s infinite' }}></div>
-              <div>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#15803d' }}>{stats.matchesCount} Possible Matches Found</p>
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#16a34a' }}>
-                  Our system has found potential matches for your report. Please review them and contact local police to verify.
-                </p>
-                <button onClick={() => setActiveTab('matches')} style={{ marginTop: 10, padding: '7px 16px', background: '#15803d', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                  View Matches →
-                </button>
+            {stats.matchesCount > 0 && (
+              <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '16px 20px', marginBottom: 24, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a', marginTop: 6, flexShrink: 0 }}></div>
+                <div>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#15803d' }}>{stats.matchesCount} Possible Matches Found</p>
+                  <p style={{ margin: '4px 0 0', fontSize: 13, color: '#16a34a' }}>
+                    Our system has found potential matches for your report. Please review them and contact local police to verify.
+                  </p>
+                  <button onClick={() => setActiveTab('matches')} style={{ marginTop: 10, padding: '7px 16px', background: '#15803d', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    View Matches →
+                  </button>
+                </div>
               </div>
-            </div>}
+            )}
 
             {/* STAT CARDS */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
               {[
                 { label: 'Days Since Report', value: String(stats.daysSince), color: '#1e3a5f', bg: '#eff6ff', border: '#bfdbfe' },
-{ label: 'Possible Matches', value: String(stats.matchesCount), color: '#dc2626', bg: '#fff5f5', border: '#fecaca' },
-{ label: 'Bodies Reviewed', value: String(stats.bodiesCount), color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
-{ label: 'Access Remaining', value: `${stats.daysRemaining} days`, color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
+                { label: 'Possible Matches', value: String(stats.matchesCount), color: '#dc2626', bg: '#fff5f5', border: '#fecaca' },
+                { label: 'Bodies Reviewed', value: String(stats.bodiesCount), color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+                { label: 'Access Remaining', value: `${stats.daysRemaining} days`, color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
               ].map(stat => (
                 <div key={stat.label} style={{ background: stat.bg, border: `1px solid ${stat.border}`, borderRadius: 10, padding: '18px 20px' }}>
                   <div style={{ fontSize: 26, fontWeight: 700, color: stat.color, marginBottom: 4 }}>{stat.value}</div>
@@ -363,15 +358,11 @@ useEffect(() => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 24 }}>
                 {missingReport?.photo_url && (
-  <div style={{ marginBottom: 16, textAlign: 'center' }}>
-    <img
-      src={missingReport.photo_url}
-      alt={missingReport.full_name}
-      style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', border: '3px solid #e2e8f0' }}
-    />
-  </div>
-)}
-<h3 style={{ fontSize: 15, fontWeight: 600, color: '#1e3a5f', marginBottom: 16, marginTop: 0 }}>Missing Person Report</h3>
+                  <div style={{ marginBottom: 16, textAlign: 'center' }}>
+                    <img src={missingReport.photo_url} alt={missingReport.full_name} style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover', border: '3px solid #e2e8f0' }} />
+                  </div>
+                )}
+                <h3 style={{ fontSize: 15, fontWeight: 600, color: '#1e3a5f', marginBottom: 16, marginTop: 0 }}>Missing Person Report</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {(missingReport ? [
                     { label: 'Name', value: missingReport.full_name },
@@ -401,13 +392,10 @@ useEffect(() => {
                 <h3 style={{ fontSize: 15, fontWeight: 600, color: '#1e3a5f', marginBottom: 16, marginTop: 0 }}>Recent Activity</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                   {[
-                    { date: 'Today', text: 'New possible match found — Male, 30-40, Maharashtra', type: 'match' },
-                    { date: '3 days ago', text: 'System reviewed 12 new unidentified body records', type: 'scan' },
-                    { date: '1 week ago', text: 'New possible match found — Male, 28-38, Mumbai', type: 'match' },
-                    { date: '2 weeks ago', text: 'Your report was verified by admin', type: 'verify' },
-                    { date: '4 months ago', text: 'Account registered and report submitted', type: 'register' },
+                    { date: 'Today', text: 'System scanned new unidentified body records', type: 'scan' },
+                    { date: '2 weeks ago', text: 'Your report was submitted', type: 'register' },
                   ].map((item, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 14, paddingBottom: 16, borderBottom: i < 4 ? '1px solid #f1f5f9' : 'none', paddingTop: i > 0 ? 16 : 0 }}>
+                    <div key={i} style={{ display: 'flex', gap: 14, paddingBottom: 16, borderBottom: i < 1 ? '1px solid #f1f5f9' : 'none', paddingTop: i > 0 ? 16 : 0 }}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: item.type === 'match' ? '#dc2626' : item.type === 'verify' ? '#15803d' : '#94a3b8', flexShrink: 0, marginTop: 5 }}></div>
                       <div>
                         <p style={{ margin: 0, fontSize: 13, color: '#334155' }}>{item.text}</p>
@@ -417,34 +405,6 @@ useEffect(() => {
                   ))}
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* MATCHES TAB */}
-        {activeTab === 'matches' && (
-          <div>
-            <p style={{ fontSize: 14, color: '#475569', marginBottom: 20 }}>
-              These are algorithmically generated matches based on age, gender, state and physical description. These are not confirmed identifications. Please contact your local police station to verify.
-            </p>
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '40px 24px', textAlign: 'center' }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
-              <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f', marginBottom: 8 }}>No matches found yet</h3>
-              <p style={{ fontSize: 14, color: '#64748b' }}>Our system continuously scans unidentified body records. You will be notified when a potential match is found.</p>
-            </div>
-          </div>
-        )}
-
-        {/* MATCHES TAB */}
-        {activeTab === 'matches' && (
-          <div>
-            <p style={{ fontSize: 14, color: '#475569', marginBottom: 20 }}>
-              These are algorithmically generated matches based on age, gender, state and physical description. These are not confirmed identifications. Please contact your local police station to verify.
-            </p>
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '40px 24px', textAlign: 'center' }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
-              <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f', marginBottom: 8 }}>No matches found yet</h3>
-              <p style={{ fontSize: 14, color: '#64748b' }}>Our system continuously scans unidentified body records. You will be notified when a potential match is found.</p>
             </div>
           </div>
         )}
@@ -464,29 +424,6 @@ useEffect(() => {
               <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
               <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f', marginBottom: 8 }}>No matches found yet</h3>
               <p style={{ fontSize: 14, color: '#64748b' }}>Our system continuously scans unidentified body records. You will be notified when a potential match is found.</p>
-            </div>
-          </div>
-        )}
-                <div key={match.id} style={{ background: '#ffffff', border: '1px solid #fca5a5', borderRadius: 10, padding: 24, borderLeft: '4px solid #dc2626' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                    <div>
-                      <span style={{ fontSize: 15, fontWeight: 600, color: '#1e3a5f' }}>Case #{match.id}</span>
-                      <span style={{ marginLeft: 10, fontSize: 13, color: '#64748b' }}>Found: {match.found} · {match.city}</span>
-                    </div>
-                    <div style={{ background: '#fee2e2', color: '#dc2626', fontSize: 13, fontWeight: 700, padding: '4px 14px', borderRadius: 20 }}>
-                      {match.score}% match
-                    </div>
-                  </div>
-                  <p style={{ margin: '0 0 16px', fontSize: 13, color: '#475569' }}>
-                    <strong>Why matched:</strong> {match.reason}
-                  </p>
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button style={{ padding: '8px 18px', background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>View Full Record</button>
-                    <button style={{ padding: '8px 18px', background: '#15803d', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>Contact Police</button>
-                    <button style={{ padding: '8px 18px', background: '#fff', color: '#475569', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>Not a Match</button>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         )}
