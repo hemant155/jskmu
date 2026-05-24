@@ -421,6 +421,34 @@ useEffect(() => {
           </div>
         )}
 
+        {/* MATCHES TAB */}
+        {activeTab === 'matches' && (
+          <div>
+            <p style={{ fontSize: 14, color: '#475569', marginBottom: 20 }}>
+              These are algorithmically generated matches based on age, gender, state and physical description. These are not confirmed identifications. Please contact your local police station to verify.
+            </p>
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '40px 24px', textAlign: 'center' }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f', marginBottom: 8 }}>No matches found yet</h3>
+              <p style={{ fontSize: 14, color: '#64748b' }}>Our system continuously scans unidentified body records. You will be notified when a potential match is found.</p>
+            </div>
+          </div>
+        )}
+
+        {/* MATCHES TAB */}
+        {activeTab === 'matches' && (
+          <div>
+            <p style={{ fontSize: 14, color: '#475569', marginBottom: 20 }}>
+              These are algorithmically generated matches based on age, gender, state and physical description. These are not confirmed identifications. Please contact your local police station to verify.
+            </p>
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '40px 24px', textAlign: 'center' }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f', marginBottom: 8 }}>No matches found yet</h3>
+              <p style={{ fontSize: 14, color: '#64748b' }}>Our system continuously scans unidentified body records. You will be notified when a potential match is found.</p>
+            </div>
+          </div>
+        )}
+
         {/* BODIES TAB */}
         {activeTab === 'bodies' && (
           <BodiesTab missingReport={missingReport} />
