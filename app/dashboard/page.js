@@ -221,6 +221,52 @@ useEffect(() => {
   fetchReport()
 }, [])
 
+const [stats, setStats] = useState({
+  daysSince: 0,
+  bodiesCount: 0,
+  daysRemaining: 0,
+  matchesCount: 0
+})
+
+useEffect(() => {
+  const fetchStats = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+
+    // Bodies count
+    const { count: bodiesCount } = await supabase
+      .from('unidentified_bodies')
+      .select('*', { count: 'exact', head: true })
+
+    // Missing report for days calculation
+    const { data: report } = await supabase
+      .from('missing_persons')
+      .select('created_at')
+      .eq('reported_by', session.user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    let daysSince = 0
+    let daysRemaining = 0
+
+    if (report) {
+      const created = new Date(report.created_at)
+      const now = new Date()
+      daysSince = Math.floor((now - created) / (1000 * 60 * 60 * 24))
+      daysRemaining = Math.max(0, 365 - daysSince)
+    }
+
+    setStats({
+      daysSince,
+      bodiesCount: bodiesCount || 0,
+      daysRemaining,
+      matchesCount: 0
+    })
+  }
+  fetchStats()
+}, [])
+
   const tabStyle = (tab) => ({
     padding: '10px 20px',
     border: 'none',
@@ -301,10 +347,10 @@ useEffect(() => {
             {/* STAT CARDS */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
               {[
-                { label: 'Days Since Report', value: '127', color: '#1e3a5f', bg: '#eff6ff', border: '#bfdbfe' },
-                { label: 'Possible Matches', value: '2', color: '#dc2626', bg: '#fff5f5', border: '#fecaca' },
-                { label: 'Bodies Reviewed', value: '43', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
-                { label: 'Access Remaining', value: '238 days', color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
+                { label: 'Days Since Report', value: String(stats.daysSince), color: '#1e3a5f', bg: '#eff6ff', border: '#bfdbfe' },
+{ label: 'Possible Matches', value: String(stats.matchesCount), color: '#dc2626', bg: '#fff5f5', border: '#fecaca' },
+{ label: 'Bodies Reviewed', value: String(stats.bodiesCount), color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+{ label: 'Access Remaining', value: `${stats.daysRemaining} days`, color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
               ].map(stat => (
                 <div key={stat.label} style={{ background: stat.bg, border: `1px solid ${stat.border}`, borderRadius: 10, padding: '18px 20px' }}>
                   <div style={{ fontSize: 26, fontWeight: 700, color: stat.color, marginBottom: 4 }}>{stat.value}</div>
