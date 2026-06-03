@@ -1,50 +1,12 @@
 import Link from 'next/link'
+import Navbar from '@/components/Navbar'
 
 export default function Home() {
   return (
     <main style={{ minHeight: '100vh', background: '#f0f4f8', fontFamily: 'Arial, sans-serif' }}>
 
-      {/* TOP BAR */}
-      <div style={{ background: '#1e3a5f', padding: '8px 24px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ color: '#93c5fd', fontSize: 12 }}>
-            Emergency: 112 &nbsp;|&nbsp; National Missing Persons Helpline: 1094
-          </span>
-          <span style={{ color: '#93c5fd', fontSize: 12 }}>
-            In memory of Jaswant Singh Khalra (1952–1995)
-          </span>
-        </div>
-      </div>
-
-      {/* NAVBAR */}
-      <nav style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '0 24px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: 64 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
-              <span style={{ fontSize: 22, fontWeight: 700, color: '#1e3a5f', letterSpacing: -0.5 }}>JSK</span>
-              <span style={{ fontSize: 22, fontWeight: 700, color: '#2563eb' }}>MU</span>
-            </div>
-            <div style={{ fontSize: 10, color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: -2 }}>
-              Jaswant Singh Khalra · Missing & Unidentified
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Link href="/search" style={{ fontSize: 14, color: '#475569', padding: '8px 16px', borderRadius: 6, textDecoration: 'none', fontWeight: 500 }}>
-              Search
-            </Link>
-            <Link href="/about" style={{ fontSize: 14, color: '#475569', padding: '8px 16px', borderRadius: 6, textDecoration: 'none', fontWeight: 500 }}>
-              About
-            </Link>
-            <Link href="/login" style={{ fontSize: 14, color: '#475569', padding: '8px 16px', borderRadius: 6, textDecoration: 'none', fontWeight: 500 }}>
-              Login
-            </Link>
-            <Link href="/register" style={{ fontSize: 14, background: '#1e3a5f', color: '#ffffff', padding: '9px 20px', borderRadius: 6, textDecoration: 'none', fontWeight: 600 }}>
-              Register
-            </Link>
-          </div>
-        </div>
-      </nav>
+      {/* NAVBAR (shared component — handles top bar + nav + mobile menu) */}
+      <Navbar />
 
       {/* HERO */}
       <section style={{ background: '#1e3a5f', padding: '64px 24px' }}>
