@@ -107,7 +107,7 @@ export default function ContributorDashboard() {
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 30 }}>⏳</div>
             <h2 style={{ fontSize: 20, fontWeight: 600, color: '#1e3a5f', marginBottom: 12 }}>Application Under Review</h2>
             <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, marginBottom: 24 }}>
-              Aapki contributor application admin ke paas review ke liye gayi hai. Verification complete hone ke baad aap unidentified body records add kar paayenge.
+              Your contributor application has been sent to an admin for review. Once verification is complete, you'll be able to add unidentified body records.
             </p>
 
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '16px 20px', textAlign: 'left', marginBottom: 24 }}>
@@ -120,7 +120,7 @@ export default function ContributorDashboard() {
             </div>
 
             <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
-              Verification usually takes 24–48 hours. Aapke registered details — naam, organization, phone — admin verify karega.
+              Verification usually takes 24–48 hours. An admin will verify your registered details — name, organization, and phone number.
             </p>
           </div>
         </div>
