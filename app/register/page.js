@@ -10,8 +10,8 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1)
   const [role, setRole] = useState('')
   const [errors, setErrors] = useState({})
-const [loading, setLoading] = useState(false)
-const [authError, setAuthError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [authError, setAuthError] = useState('')
   const [form, setForm] = useState({
     name: '', phone: '', email: '', state: '', password: '',
     firNumber: '', organization: '', aadhaar: ''
@@ -21,55 +21,42 @@ const [authError, setAuthError] = useState('')
 
   const router = useRouter()
 
-const handleRegister = async () => {
-  setLoading(true)
-  setAuthError('')
-  try {
-    // 1. Supabase Auth mein user banao
- const { data: authData, error: signUpError } = await supabase.auth.signUp({
-  email: form.email,
-  password: form.password,
-  options: {
-    data: {
-      full_name: form.name,
-      phone: form.phone,
-      role: role,  // 'family' or 'contributor'
-      fir_number: form.firNumber || null,
-    }
-  }
-})
-    if (signUpError) throw signUpError
+  const handleRegister = async () => {
+    setLoading(true)
+    setAuthError('')
+    try {
+      // Create the Supabase Auth user. The database trigger reads this
+      // metadata and creates the matching profile row automatically.
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: {
+            full_name: form.name,
+            phone: form.phone,
+            role: role, // 'family' or 'contributor'
+            fir_number: form.firNumber || null,
+          }
+        }
+      })
+      if (signUpError) throw signUpError
 
-    // 2. Profile save karo
-    // Profile will be updated after email verification
-// Trigger handles basic profile creation
-router.push('/register/success')
-return
-
-    // 3. Contributor ke liye direct success
-    if (role === 'contributor') {
+      // Both family and contributor land on the success page.
+      // (Payment for families will be integrated post-launch.)
       router.push('/register/success')
-      return
+    } catch (err) {
+      setAuthError(err.message)
+    } finally {
+      setLoading(false)
     }
-
-
-    // Payment will be integrated post-launch
-router.push('/register/success')
-return
-
-  } catch (err) {
-    setAuthError(err.message)
-  } finally {
-    setLoading(false)
   }
-}
 
   const validateStep2 = () => {
     const e = {}
-    if (!form.name.trim()) e.name = 'Name required'
-    if (!form.phone.trim() || form.phone.length < 10) e.phone = 'Valid phone number required'
-    if (!form.email.trim() || !form.email.includes('@')) e.email = 'Valid email required'
-    if (!form.state) e.state = 'State select karo'
+    if (!form.name.trim()) e.name = 'Name is required'
+    if (!form.phone.trim() || form.phone.length < 10) e.phone = 'A valid phone number is required'
+    if (!form.email.trim() || !form.email.includes('@')) e.email = 'A valid email is required'
+    if (!form.state) e.state = 'Please select a state'
     if (!form.password.trim() || form.password.length < 8) e.password = 'Minimum 8 characters'
     setErrors(e)
     return Object.keys(e).length === 0
@@ -77,7 +64,7 @@ return
 
   const validateStep3 = () => {
     const e = {}
-    if (role === 'family' && !form.firNumber.trim()) e.firNumber = 'FIR number required'
+    if (role === 'family' && !form.firNumber.trim()) e.firNumber = 'FIR number is required'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -149,10 +136,10 @@ return
         {step === 1 && (
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 28 }}>
             <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1e3a5f', marginBottom: 6, marginTop: 0 }}>
-              Aap kaun hain?
+              Who are you?
             </h2>
             <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24, marginTop: 0 }}>
-              Apna role chunein
+              Select your role
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -160,7 +147,7 @@ return
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 600, color: '#1e3a5f', marginBottom: 6 }}>👨‍👩‍👧 Family Member</div>
-                    <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.6 }}>Maine FIR file ki hai aur apna missing person report karna chahta/chahti hoon.</div>
+                    <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.6 }}>I have filed an FIR and want to report my missing person.</div>
                     <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {['FIR copy required', '₹499 one-time', '1 year access'].map(tag => (
                         <span key={tag} style={{ fontSize: 11, background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: 20, fontWeight: 500 }}>{tag}</span>
@@ -175,7 +162,7 @@ return
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 600, color: '#15803d', marginBottom: 6 }}>🔍 Field Contributor</div>
-                    <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.6 }}>Main diver, NGO worker ya police hoon — unidentified bodies ki details add karna chahta/chahti hoon.</div>
+                    <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.6 }}>I am a diver, NGO worker, or police officer — I want to add details of unidentified bodies.</div>
                     <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {['Free registration', 'Admin verified', 'Earnings per case'].map(tag => (
                         <span key={tag} style={{ fontSize: 11, background: '#f0fdf4', color: '#15803d', padding: '2px 8px', borderRadius: 20, fontWeight: 500 }}>{tag}</span>
@@ -191,7 +178,7 @@ return
 
             <button
               onClick={() => {
-                if (!role) { setErrors({ role: 'Pehle role chunein' }); return; }
+                if (!role) { setErrors({ role: 'Please select a role first' }); return; }
                 setErrors({})
                 setStep(2)
               }}
@@ -204,12 +191,12 @@ return
         {/* STEP 2 — DETAILS */}
         {step === 2 && (
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 28 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1e3a5f', marginBottom: 20, marginTop: 0 }}>Aapki details</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1e3a5f', marginBottom: 20, marginTop: 0 }}>Your details</h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
                 <label style={{ fontSize: 12, color: '#64748b', fontWeight: 500, display: 'block', marginBottom: 6 }}>FULL NAME *</label>
-                <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Apna poora naam" style={inputStyle('name')} />
+                <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Your full name" style={inputStyle('name')} />
                 {errors.name && <p style={{ color: '#dc2626', fontSize: 11, margin: '4px 0 0' }}>{errors.name}</p>}
               </div>
               <div>
@@ -249,8 +236,8 @@ return
         {/* STEP 3 — DOCUMENTS */}
         {step === 3 && (
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 28 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1e3a5f', marginBottom: 6, marginTop: 0 }}>Documents Upload</h2>
-            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24, marginTop: 0 }}>Sirf admin verification ke liye — publicly visible nahi honge</p>
+            <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1e3a5f', marginBottom: 6, marginTop: 0 }}>Document Upload</h2>
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24, marginTop: 0 }}>For admin verification only — these will not be publicly visible</p>
 
             {role === 'family' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -263,14 +250,14 @@ return
                   <label style={{ fontSize: 12, color: '#64748b', fontWeight: 500, display: 'block', marginBottom: 6 }}>FIR COPY UPLOAD *</label>
                   <div style={{ border: '2px dashed #e2e8f0', borderRadius: 8, padding: '24px', textAlign: 'center', background: '#f8fafc', cursor: 'pointer' }}>
                     <div style={{ fontSize: 24, marginBottom: 8 }}>📄</div>
-                    <div style={{ fontSize: 14, color: '#475569', marginBottom: 4 }}>Click karke upload karo</div>
+                    <div style={{ fontSize: 14, color: '#475569', marginBottom: 4 }}>Click to upload</div>
                     <div style={{ fontSize: 12, color: '#94a3b8' }}>PDF, JPG, PNG — max 5MB</div>
                     <input type="file" accept=".pdf,.jpg,.png" style={{ display: 'none' }} />
                   </div>
                   {errors.firFile && <p style={{ color: '#dc2626', fontSize: 11, margin: '4px 0 0' }}>{errors.firFile}</p>}
                 </div>
                 <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '12px 16px' }}>
-                  <p style={{ margin: 0, fontSize: 12, color: '#92400e' }}>🔒 FIR document encrypted storage mein rakha jayega. Sirf admin verification ke liye use hoga.</p>
+                  <p style={{ margin: 0, fontSize: 12, color: '#92400e' }}>🔒 The FIR document is kept in encrypted storage and used only for admin verification.</p>
                 </div>
               </div>
             )}
@@ -280,26 +267,28 @@ return
                 <div>
                   <label style={{ fontSize: 12, color: '#64748b', fontWeight: 500, display: 'block', marginBottom: 6 }}>ORGANIZATION / AFFILIATION</label>
                   <select
-  value={form.organization}
-  onChange={e => set('organization', e.target.value)}
-  style={inputStyle('organization')}>
-  <option value="">Select type</option>
-  <option value="Individual">Individual</option>
-  <option value="NGO / Non-profit">NGO / Non-profit</option>
-  <option value="Police Department">Police Department</option>
-  <option value="Government Body">Government Body</option>
-  <option value="Media / Journalist">Media / Journalist</option>
-  <option value="Other">Other</option>
-</select>
+                    value={form.organization}
+                    onChange={e => set('organization', e.target.value)}
+                    style={inputStyle('organization')}>
+                    <option value="">Select type</option>
+                    <option value="Individual">Individual</option>
+                    <option value="NGO / Non-profit">NGO / Non-profit</option>
+                    <option value="Police Department">Police Department</option>
+                    <option value="Government Body">Government Body</option>
+                    <option value="Media / Journalist">Media / Journalist</option>
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: '#64748b', fontWeight: 500, display: 'block', marginBottom: 6 }}>AADHAAR VERIFICATION *</label>
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '16px' }}>
-                    <p style={{ margin: '0 0 12px', fontSize: 13, color: '#15803d', fontWeight: 500 }}>OTP se verify karein — copy store nahi hogi</p>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <input value={form.aadhaar} onChange={e => set('aadhaar', e.target.value)} placeholder="Aadhaar number" style={{ flex: 1, padding: '10px 14px', border: '1px solid #bbf7d0', borderRadius: 6, fontSize: 14, outline: 'none', color: '#1e293b', background: '#ffffff' }} />
-                      <button style={{ padding: '10px 16px', background: '#15803d', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>Send OTP</button>
+                  <label style={{ fontSize: 12, color: '#64748b', fontWeight: 500, display: 'block', marginBottom: 6 }}>AADHAAR VERIFICATION</label>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontSize: 13, color: '#1e3a5f', fontWeight: 600 }}>Coming Soon</span>
+                      <span style={{ fontSize: 10, background: '#e2e8f0', color: '#64748b', padding: '2px 8px', borderRadius: 20, fontWeight: 600, letterSpacing: '0.05em' }}>OTP-BASED</span>
                     </div>
+                    <p style={{ margin: 0, fontSize: 12, color: '#94a3b8', lineHeight: 1.6 }}>
+                      Secure OTP-based Aadhaar verification will be available soon. For now, your account will be verified manually by an admin. No Aadhaar number is stored.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -313,121 +302,120 @@ return
         )}
 
         {/* STEP 4 — PAYMENT */}
-        {/* STEP 4 — PAYMENT */}
-{step === 4 && (
-  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 28 }}>
-    {role === 'family' ? (
-      <>
-        <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1e3a5f', marginBottom: 6, marginTop: 0 }}>Payment</h2>
-        <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24, marginTop: 0 }}>One-time fee — 1 year access</p>
+        {step === 4 && (
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 28 }}>
+            {role === 'family' ? (
+              <>
+                <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1e3a5f', marginBottom: 6, marginTop: 0 }}>Payment</h2>
+                <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24, marginTop: 0 }}>One-time fee — 1 year access</p>
 
-        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 20, marginBottom: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ fontSize: 14, color: '#1e40af', fontWeight: 600 }}>JSKMU Family Registration</span>
-            <span style={{ fontSize: 22, fontWeight: 700, color: '#1e3a5f' }}>₹499</span>
-          </div>
-          <div style={{ fontSize: 12, color: '#3b82f6', lineHeight: 1.8 }}>
-            ✓ Add missing person report<br />
-            ✓ Access unidentified bodies database<br />
-            ✓ Automatic match notifications — 1 year<br />
-            ✓ Admin verified account
-          </div>
-        </div>
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 20, marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <span style={{ fontSize: 14, color: '#1e40af', fontWeight: 600 }}>JSKMU Family Registration</span>
+                    <span style={{ fontSize: 22, fontWeight: 700, color: '#1e3a5f' }}>₹499</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#3b82f6', lineHeight: 1.8 }}>
+                    ✓ Add missing person report<br />
+                    ✓ Access unidentified bodies database<br />
+                    ✓ Automatic match notifications — 1 year<br />
+                    ✓ Admin verified account
+                  </div>
+                </div>
 
-        {authError && (
-          <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
-            <p style={{ margin: 0, fontSize: 13, color: '#dc2626' }}>{authError}</p>
+                {authError && (
+                  <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
+                    <p style={{ margin: 0, fontSize: 13, color: '#dc2626' }}>{authError}</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => { setErrors({}); setStep(3) }}
+                  style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', fontSize: 14, cursor: 'pointer', color: '#475569', marginBottom: 12 }}>
+                  ← Back
+                </button>
+
+                <button
+                  onClick={handleRegister}
+                  disabled={loading}
+                  style={{
+                    width: '100%', padding: '14px', border: 'none', borderRadius: 8,
+                    background: loading ? '#94a3b8' : '#1e3a5f',
+                    color: '#fff', fontSize: 15, fontWeight: 600,
+                    cursor: loading ? 'not-allowed' : 'pointer'
+                  }}>
+                  {loading ? 'Creating account...' : 'Create Account & Pay ₹499'}
+                </button>
+
+                <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', marginTop: 12 }}>
+                  🔒 Secure payment · UPI, Cards, Net Banking accepted
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 style={{ fontSize: 18, fontWeight: 600, color: '#15803d', marginBottom: 6, marginTop: 0 }}>
+                  Almost Done!
+                </h2>
+                <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, marginTop: 0, marginBottom: 20 }}>
+                  Review your details before submitting your contributor application.
+                </p>
+
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 16, marginBottom: 20 }}>
+                  {[
+                    { label: 'Name', value: form.name },
+                    { label: 'Email', value: form.email },
+                    { label: 'Phone', value: form.phone },
+                    { label: 'State', value: form.state },
+                    { label: 'Organization', value: form.organization || 'Independent' },
+                  ].map(item => (
+                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, paddingBottom: 8, marginBottom: 8, borderBottom: '1px solid #f1f5f9' }}>
+                      <span style={{ color: '#94a3b8' }}>{item.label}</span>
+                      <span style={{ color: '#1e293b', fontWeight: 500 }}>{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '12px 16px', marginBottom: 20 }}>
+                  <p style={{ margin: 0, fontSize: 13, color: '#15803d', lineHeight: 1.7 }}>
+                    ✓ Registration is free<br />
+                    ✓ Admin will verify within 24-48 hours<br />
+                    ✓ You will be notified via email after approval<br />
+                    ✓ Earnings per confirmed identification
+                  </p>
+                </div>
+
+                {authError && (
+                  <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
+                    <p style={{ margin: 0, fontSize: 13, color: '#dc2626' }}>{authError}</p>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button
+                    onClick={() => { setErrors({}); setStep(3) }}
+                    style={{ flex: 1, padding: '12px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', fontSize: 14, cursor: 'pointer', color: '#475569' }}>
+                    ← Back
+                  </button>
+                  <button
+                    onClick={handleRegister}
+                    disabled={loading}
+                    style={{
+                      flex: 2, padding: '12px', border: 'none', borderRadius: 8,
+                      background: loading ? '#94a3b8' : '#15803d',
+                      color: '#fff', fontSize: 15, fontWeight: 600,
+                      cursor: loading ? 'not-allowed' : 'pointer'
+                    }}>
+                    {loading ? 'Submitting...' : 'Submit Application'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
-
-        <button
-          onClick={() => { setErrors({}); setStep(3) }}
-          style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', fontSize: 14, cursor: 'pointer', color: '#475569', marginBottom: 12 }}>
-          ← Back
-        </button>
-
-        <button
-          onClick={handleRegister}
-          disabled={loading}
-          style={{
-            width: '100%', padding: '14px', border: 'none', borderRadius: 8,
-            background: loading ? '#94a3b8' : '#1e3a5f',
-            color: '#fff', fontSize: 15, fontWeight: 600,
-            cursor: loading ? 'not-allowed' : 'pointer'
-          }}>
-          {loading ? 'Creating account...' : 'Create Account & Pay ₹499'}
-        </button>
-
-        <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', marginTop: 12 }}>
-          🔒 Secure payment · UPI, Cards, Net Banking accepted
-        </p>
-      </>
-    ) : (
-      <>
-        <h2 style={{ fontSize: 18, fontWeight: 600, color: '#15803d', marginBottom: 6, marginTop: 0 }}>
-          Almost Done!
-        </h2>
-        <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, marginTop: 0, marginBottom: 20 }}>
-          Review your details before submitting your contributor application.
-        </p>
-
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 16, marginBottom: 20 }}>
-          {[
-            { label: 'Name', value: form.name },
-            { label: 'Email', value: form.email },
-            { label: 'Phone', value: form.phone },
-            { label: 'State', value: form.state },
-            { label: 'Organization', value: form.organization || 'Independent' },
-          ].map(item => (
-            <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, paddingBottom: 8, marginBottom: 8, borderBottom: '1px solid #f1f5f9' }}>
-              <span style={{ color: '#94a3b8' }}>{item.label}</span>
-              <span style={{ color: '#1e293b', fontWeight: 500 }}>{item.value}</span>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '12px 16px', marginBottom: 20 }}>
-          <p style={{ margin: 0, fontSize: 13, color: '#15803d', lineHeight: 1.7 }}>
-            ✓ Registration is free<br />
-            ✓ Admin will verify within 24-48 hours<br />
-            ✓ You will be notified via email after approval<br />
-            ✓ Earnings per confirmed identification
-          </p>
-        </div>
-
-        {authError && (
-          <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
-            <p style={{ margin: 0, fontSize: 13, color: '#dc2626' }}>{authError}</p>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button
-            onClick={() => { setErrors({}); setStep(3) }}
-            style={{ flex: 1, padding: '12px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', fontSize: 14, cursor: 'pointer', color: '#475569' }}>
-            ← Back
-          </button>
-          <button
-            onClick={handleRegister}
-            disabled={loading}
-            style={{
-              flex: 2, padding: '12px', border: 'none', borderRadius: 8,
-              background: loading ? '#94a3b8' : '#15803d',
-              color: '#fff', fontSize: 15, fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}>
-            {loading ? 'Submitting...' : 'Submit Application'}
-          </button>
-        </div>
-      </>
-    )}
-  </div>
-)}
 
       </div>
 
-        {/* FOOTER */}
-        <Footer />
+      {/* FOOTER */}
+      <Footer />
     </main>
   )
 }
