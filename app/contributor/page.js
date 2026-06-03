@@ -5,8 +5,21 @@ import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
+// Shared hook: detect mobile viewport
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+  return isMobile
+}
+
 export default function ContributorDashboard() {
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [activeTab, setActiveTab] = useState('overview')
   const [cases, setCases] = useState([])
   const [loading, setLoading] = useState(true)
@@ -29,27 +42,31 @@ export default function ContributorDashboard() {
       }
       setProfile(prof)
 
-      const { data: bodiesData } = await supabase
-  .from('unidentified_bodies')
-  .select('*')
-  .eq('added_by', session.user.id)
-  .order('created_at', { ascending: false })
-
-      setCases(bodiesData || [])
+      // Only fetch cases if verified (unverified can't add anyway)
+      if (prof.is_verified) {
+        const { data: bodiesData } = await supabase
+          .from('unidentified_bodies')
+          .select('*')
+          .eq('added_by', session.user.id)
+          .order('created_at', { ascending: false })
+        setCases(bodiesData || [])
+      }
       setLoading(false)
     }
     init()
   }, [])
 
   const tabStyle = (tab) => ({
-    padding: '10px 20px',
+    padding: isMobile ? '10px 14px' : '10px 20px',
     border: 'none',
     borderBottom: `2px solid ${activeTab === tab ? '#15803d' : 'transparent'}`,
     background: 'transparent',
     fontSize: 14,
     fontWeight: activeTab === tab ? 600 : 400,
     color: activeTab === tab ? '#15803d' : '#64748b',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
   })
 
   if (loading) return (
@@ -59,13 +76,70 @@ export default function ContributorDashboard() {
     </main>
   )
 
+  // ───────────────────────────────────────────────
+  // UNVERIFIED CONTRIBUTOR — Application Under Review
+  // ───────────────────────────────────────────────
+  if (profile && !profile.is_verified) {
+    return (
+      <main style={{ minHeight: '100vh', background: '#f0f4f8', fontFamily: 'Arial, sans-serif' }}>
+        <Navbar />
+
+        {/* HEADER */}
+        <div style={{ background: '#14532d', padding: isMobile ? '20px 16px' : '28px 24px' }}>
+          <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 14 : 0 }}>
+            <div>
+              <h1 style={{ fontSize: 22, fontWeight: 600, color: '#ffffff', margin: 0, marginBottom: 4 }}>
+                Contributor Dashboard
+              </h1>
+              <p style={{ fontSize: 13, color: '#86efac', margin: 0 }}>
+                {profile?.full_name || 'Contributor'} — Field Network
+              </p>
+            </div>
+            <div style={{ background: 'rgba(251,191,36,0.15)', color: '#fde68a', fontSize: 12, fontWeight: 600, padding: '6px 14px', borderRadius: 20 }}>
+              ⏳ Verification Pending
+            </div>
+          </div>
+        </div>
+
+        {/* PENDING REVIEW CARD */}
+        <div style={{ maxWidth: 560, margin: '40px auto', padding: '0 16px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: isMobile ? 28 : 40, textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 30 }}>⏳</div>
+            <h2 style={{ fontSize: 20, fontWeight: 600, color: '#1e3a5f', marginBottom: 12 }}>Application Under Review</h2>
+            <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.7, marginBottom: 24 }}>
+              Aapki contributor application admin ke paas review ke liye gayi hai. Verification complete hone ke baad aap unidentified body records add kar paayenge.
+            </p>
+
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '16px 20px', textAlign: 'left', marginBottom: 24 }}>
+              <p style={{ margin: 0, fontSize: 13, color: '#92400e', lineHeight: 1.8 }}>
+                ✓ Account created<br />
+                ⏳ Admin verification pending<br />
+                ✓ You'll be notified once approved<br />
+                ✓ After approval, you can add records
+              </p>
+            </div>
+
+            <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
+              Verification usually takes 24–48 hours. Aapke registered details — naam, organization, phone — admin verify karega.
+            </p>
+          </div>
+        </div>
+
+        <Footer />
+      </main>
+    )
+  }
+
+  // ───────────────────────────────────────────────
+  // VERIFIED CONTRIBUTOR — Full Dashboard
+  // ───────────────────────────────────────────────
   return (
     <main style={{ minHeight: '100vh', background: '#f0f4f8', fontFamily: 'Arial, sans-serif' }}>
       <Navbar />
 
       {/* HEADER */}
-      <div style={{ background: '#14532d', padding: '28px 24px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ background: '#14532d', padding: isMobile ? '20px 16px' : '28px 24px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 14 : 0 }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 600, color: '#ffffff', margin: 0, marginBottom: 4 }}>
               Contributor Dashboard
@@ -83,8 +157,8 @@ export default function ContributorDashboard() {
       </div>
 
       {/* TABS */}
-      <div style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '0 24px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex' }}>
+      <div style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: isMobile ? '0 8px' : '0 24px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           {[
             { key: 'overview', label: 'Overview' },
             { key: 'add', label: '+ Add New Record' },
@@ -97,12 +171,12 @@ export default function ContributorDashboard() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: isMobile ? '20px 16px' : '28px 24px' }}>
 
         {/* OVERVIEW */}
         {activeTab === 'overview' && (
           <div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
               {[
                 { label: 'Cases Added', value: cases.length, color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
                 { label: 'Identified Cases', value: cases.filter(c => c.status === 'identified').length, color: '#1e3a5f', bg: '#eff6ff', border: '#bfdbfe' },
@@ -141,7 +215,7 @@ export default function ContributorDashboard() {
 
         {/* ADD NEW RECORD */}
         {activeTab === 'add' && (
-          <AddBodyForm onSuccess={() => { setActiveTab('mycases'); router.refresh() }} />
+          <AddBodyForm isMobile={isMobile} onSuccess={() => { setActiveTab('mycases'); router.refresh() }} />
         )}
 
         {/* MY CASES */}
@@ -159,7 +233,7 @@ export default function ContributorDashboard() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {cases.map(body => (
-                  <div key={body.id} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 20, display: 'flex', gap: 20 }}>
+                  <div key={body.id} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 20, display: 'flex', gap: isMobile ? 14 : 20, flexDirection: isMobile ? 'column' : 'row' }}>
                     <div style={{ width: 72, height: 72, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
                       {body.photo_url ? (
                         <img src={body.photo_url} alt="Case" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -168,13 +242,13 @@ export default function ContributorDashboard() {
                       )}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
                         <span style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>Case #{body.case_number || body.id.slice(0, 8).toUpperCase()}</span>
                         <span style={{ fontSize: 12, background: body.status === 'identified' ? '#dcfce7' : '#fef3c7', color: body.status === 'identified' ? '#15803d' : '#92400e', padding: '2px 10px', borderRadius: 20, fontWeight: 600 }}>
                           {body.status}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', gap: 16, fontSize: 13, color: '#475569' }}>
+                      <div style={{ display: 'flex', gap: 16, fontSize: 13, color: '#475569', flexWrap: 'wrap' }}>
                         <span>Gender: {body.gender}</span>
                         <span>Age: {body.estimated_age_min}-{body.estimated_age_max}</span>
                         <span>📍 {body.city}, {body.state}</span>
@@ -196,7 +270,7 @@ export default function ContributorDashboard() {
   )
 }
 
-function AddBodyForm({ onSuccess }) {
+function AddBodyForm({ onSuccess, isMobile }) {
   const [form, setForm] = useState({
     gender: 'Male',
     estimated_age_min: '',
@@ -277,9 +351,11 @@ function AddBodyForm({ onSuccess }) {
 
   const inputStyle = { width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 14, outline: 'none', boxSizing: 'border-box', color: '#1e293b', background: '#fff' }
   const labelStyle = { fontSize: 12, color: '#64748b', fontWeight: 500, display: 'block', marginBottom: 6 }
+  const threeCol = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 12 }
+  const twoCol = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }
 
   return (
-    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 32, maxWidth: 680 }}>
+    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: isMobile ? 20 : 32, maxWidth: 680 }}>
       <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1e3a5f', marginTop: 0, marginBottom: 24 }}>Add Unidentified Body Record</h2>
 
       {/* PHOTO */}
@@ -301,7 +377,7 @@ function AddBodyForm({ onSuccess }) {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+        <div style={threeCol}>
           <div>
             <label style={labelStyle}>GENDER *</label>
             <select value={form.gender} onChange={e => set('gender', e.target.value)} style={inputStyle}>
@@ -320,7 +396,7 @@ function AddBodyForm({ onSuccess }) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={twoCol}>
           <div>
             <label style={labelStyle}>STATE *</label>
             <select value={form.state} onChange={e => set('state', e.target.value)} style={inputStyle}>
@@ -336,7 +412,7 @@ function AddBodyForm({ onSuccess }) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={twoCol}>
           <div>
             <label style={labelStyle}>AREA / LOCATION</label>
             <input value={form.area} onChange={e => set('area', e.target.value)} placeholder="e.g. Near Versova Beach" style={inputStyle} />
