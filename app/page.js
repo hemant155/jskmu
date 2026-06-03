@@ -5,6 +5,61 @@ export default function Home() {
   return (
     <main style={{ minHeight: '100vh', background: '#f0f4f8', fontFamily: 'Arial, sans-serif' }}>
 
+      {/* RESPONSIVE STYLES */}
+      <style>{`
+        .jskmu-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+        }
+        .jskmu-stat-cell {
+          padding: 28px 24px;
+          border-right: 1px solid #e2e8f0;
+        }
+        .jskmu-stat-cell:last-child {
+          border-right: none;
+        }
+        .jskmu-how-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+        }
+        .jskmu-usp-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 48px;
+          align-items: center;
+        }
+        .jskmu-hero-h1 {
+          font-size: 42px;
+        }
+
+        @media (max-width: 767px) {
+          .jskmu-stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .jskmu-stat-cell {
+            border-right: none;
+            border-bottom: 1px solid #e2e8f0;
+          }
+          .jskmu-stat-cell:nth-child(odd) {
+            border-right: 1px solid #e2e8f0;
+          }
+          .jskmu-stat-cell:nth-last-child(-n+2) {
+            border-bottom: none;
+          }
+          .jskmu-how-grid {
+            grid-template-columns: 1fr;
+          }
+          .jskmu-usp-grid {
+            grid-template-columns: 1fr;
+            gap: 32px;
+          }
+          .jskmu-hero-h1 {
+            font-size: 32px;
+          }
+        }
+      `}</style>
+
       {/* NAVBAR (shared component — handles top bar + nav + mobile menu) */}
       <Navbar />
 
@@ -16,7 +71,7 @@ export default function Home() {
             <span style={{ color: '#93c5fd', fontSize: 12, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Pan-India Database</span>
           </div>
 
-          <h1 style={{ fontSize: 42, fontWeight: 300, color: '#ffffff', lineHeight: 1.3, marginBottom: 16, maxWidth: 600, letterSpacing: -0.5 }}>
+          <h1 className="jskmu-hero-h1" style={{ fontWeight: 300, color: '#ffffff', lineHeight: 1.3, marginBottom: 16, maxWidth: 600, letterSpacing: -0.5 }}>
             Har chehra ek naam hai.<br />
             <span style={{ color: '#93c5fd' }}>Har naam ek ghar hai.</span>
           </h1>
@@ -38,14 +93,14 @@ export default function Home() {
 
       {/* STATS */}
       <section style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="jskmu-stats-grid" style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px' }}>
           {[
             { number: '0', label: 'Missing Persons Listed' },
             { number: '0', label: 'Unidentified Bodies' },
             { number: '0', label: 'Cases Resolved' },
             { number: '28+', label: 'States Covered' },
           ].map((stat, i) => (
-            <div key={i} style={{ padding: '28px 24px', borderRight: i < 3 ? '1px solid #e2e8f0' : 'none' }}>
+            <div key={i} className="jskmu-stat-cell">
               <div style={{ fontSize: 32, fontWeight: 700, color: '#1e3a5f', marginBottom: 4 }}>{stat.number}</div>
               <div style={{ fontSize: 13, color: '#64748b' }}>{stat.label}</div>
             </div>
@@ -100,7 +155,7 @@ export default function Home() {
       <section style={{ background: '#ffffff', padding: '64px 24px', borderTop: '1px solid #e2e8f0' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <h2 style={{ fontSize: 20, fontWeight: 600, color: '#1e3a5f', marginBottom: 40 }}>Kaise kaam karta hai?</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+          <div className="jskmu-how-grid">
             {[
               { step: '01', title: 'Search Karo', desc: 'Koi bhi, bina login ke, missing persons ko state, city, area se search kar sakta hai. Public database sabke liye open hai.', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
               { step: '02', title: 'Register Karo', desc: 'Family FIR copy ke saath register kare. Ek baar ₹499 payment ke baad 1 saal ke liye unidentified bodies database access milega.', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
@@ -121,7 +176,7 @@ export default function Home() {
 <section style={{ background: '#fafafa', padding: '64px 24px', borderTop: '1px solid #e2e8f0' }}>
   <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
+    <div className="jskmu-usp-grid">
 
       {/* LEFT — Text */}
       <div>
