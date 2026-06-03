@@ -6,10 +6,23 @@ import Footer from '@/components/Footer'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
+// Shared hook: detect mobile viewport
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+  return isMobile
+}
+
 
 function BodiesTab({ missingReport }) {
   const [bodies, setBodies] = useState([])
   const [loading, setLoading] = useState(true)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     const fetchBodies = async () => {
@@ -44,7 +57,7 @@ function BodiesTab({ missingReport }) {
           {bodies.map(body => {
             const isMatch = missingReport && body.gender === missingReport.gender
             return (
-              <div key={body.id} style={{ background: '#ffffff', border: `1px solid ${isMatch ? '#fca5a5' : '#e2e8f0'}`, borderRadius: 10, padding: 20, display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+              <div key={body.id} style={{ background: '#ffffff', border: `1px solid ${isMatch ? '#fca5a5' : '#e2e8f0'}`, borderRadius: 10, padding: 20, display: 'flex', gap: isMobile ? 14 : 20, alignItems: 'flex-start', flexDirection: isMobile ? 'column' : 'row' }}>
                 <div style={{ width: 80, height: 80, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #e2e8f0', overflow: 'hidden', filter: body.photo_url ? 'blur(4px)' : 'none' }}>
                   {body.photo_url ? (
                     <img src={body.photo_url} alt="Unidentified" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -52,8 +65,8 @@ function BodiesTab({ missingReport }) {
                     <span style={{ fontSize: 28 }}>👤</span>
                   )}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                <div style={{ flex: 1, width: isMobile ? '100%' : 'auto' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
                     <div>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#1e3a5f' }}>Case #{body.case_number || body.id.slice(0, 8).toUpperCase()}</span>
                       {isMatch && (
@@ -68,7 +81,7 @@ function BodiesTab({ missingReport }) {
                     <span style={{ fontSize: 13, color: '#475569' }}>Location: {body.city}, {body.state}</span>
                   </div>
                   <p style={{ margin: 0, fontSize: 13, color: '#64748b', lineHeight: 1.6 }}>{body.description}</p>
-                  <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                  <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button style={{ padding: '6px 14px', background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontWeight: 500 }}>View Full Details</button>
                     <button style={{ padding: '6px 14px', background: '#fff', color: '#475569', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>Not a Match</button>
                   </div>
@@ -96,6 +109,7 @@ function EditReportForm({ report, onSaved }) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const isMobile = useIsMobile()
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -140,6 +154,7 @@ function EditReportForm({ report, onSaved }) {
 
   const inputStyle = { width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 14, outline: 'none', boxSizing: 'border-box', color: '#1e293b' }
   const labelStyle = { fontSize: 12, color: '#64748b', fontWeight: 500, display: 'block', marginBottom: 6 }
+  const twoCol = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -147,7 +162,7 @@ function EditReportForm({ report, onSaved }) {
         <label style={labelStyle}>FULL NAME</label>
         <input value={form.full_name} onChange={e => set('full_name', e.target.value)} style={inputStyle} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={twoCol}>
         <div>
           <label style={labelStyle}>AGE</label>
           <input value={form.age} onChange={e => set('age', e.target.value)} type="number" style={inputStyle} />
@@ -157,7 +172,7 @@ function EditReportForm({ report, onSaved }) {
           <input value={form.last_seen_date} onChange={e => set('last_seen_date', e.target.value)} type="date" style={inputStyle} />
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={twoCol}>
         <div>
           <label style={labelStyle}>CITY</label>
           <input value={form.city} onChange={e => set('city', e.target.value)} style={inputStyle} />
@@ -181,7 +196,7 @@ function EditReportForm({ report, onSaved }) {
       </div>
       {error && <p style={{ color: '#dc2626', fontSize: 13, margin: 0 }}>{error}</p>}
       {saved && <p style={{ color: '#15803d', fontSize: 13, margin: 0 }}>✓ Saved successfully!</p>}
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ display: 'flex', gap: 10, flexDirection: isMobile ? 'column' : 'row' }}>
         <button onClick={handleSave} disabled={saving} style={{ flex: 2, padding: '11px', background: saving ? '#94a3b8' : '#1e3a5f', color: '#fff', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}>
           {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Changes'}
         </button>
@@ -196,6 +211,7 @@ function EditReportForm({ report, onSaved }) {
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('overview')
   const router = useRouter()
+  const isMobile = useIsMobile()
 
   const [missingReport, setMissingReport] = useState(null)
   const [loadingReport, setLoadingReport] = useState(true)
@@ -262,14 +278,16 @@ export default function DashboardPage() {
   }, [])
 
   const tabStyle = (tab) => ({
-    padding: '10px 20px',
+    padding: isMobile ? '10px 14px' : '10px 20px',
     border: 'none',
     borderBottom: `2px solid ${activeTab === tab ? '#1e3a5f' : 'transparent'}`,
     background: 'transparent',
     fontSize: 14,
     fontWeight: activeTab === tab ? 600 : 400,
     color: activeTab === tab ? '#1e3a5f' : '#64748b',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
   })
 
   return (
@@ -277,8 +295,8 @@ export default function DashboardPage() {
       <Navbar />
 
       {/* PAGE HEADER */}
-      <div style={{ background: '#1e3a5f', padding: '28px 24px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ background: '#1e3a5f', padding: isMobile ? '20px 16px' : '28px 24px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 14 : 0 }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 600, color: '#ffffff', margin: 0, marginBottom: 4 }}>
               Family Dashboard
@@ -287,7 +305,7 @@ export default function DashboardPage() {
               Welcome back — your case is being monitored
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ background: '#dcfce7', color: '#15803d', fontSize: 12, fontWeight: 600, padding: '6px 14px', borderRadius: 20 }}>
               ✓ Verified Account
             </div>
@@ -299,8 +317,8 @@ export default function DashboardPage() {
       </div>
 
       {/* TABS */}
-      <div style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '0 24px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex' }}>
+      <div style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: isMobile ? '0 8px' : '0 24px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           {[
             { key: 'overview', label: 'Overview' },
             { key: 'report', label: 'My Report' },
@@ -319,7 +337,7 @@ export default function DashboardPage() {
       </div>
 
       {/* CONTENT */}
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: isMobile ? '20px 16px' : '28px 24px' }}>
 
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
@@ -340,7 +358,7 @@ export default function DashboardPage() {
             )}
 
             {/* STAT CARDS */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 12 : 16, marginBottom: 24 }}>
               {[
                 { label: 'Days Since Report', value: String(stats.daysSince), color: '#1e3a5f', bg: '#eff6ff', border: '#bfdbfe' },
                 { label: 'Possible Matches', value: String(stats.matchesCount), color: '#dc2626', bg: '#fff5f5', border: '#fecaca' },
@@ -355,7 +373,7 @@ export default function DashboardPage() {
             </div>
 
             {/* REPORT SUMMARY */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 24 }}>
                 {missingReport?.photo_url && (
                   <div style={{ marginBottom: 16, textAlign: 'center' }}>
@@ -438,7 +456,7 @@ export default function DashboardPage() {
                 + Add Missing Person Report
               </button>
             </div>
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 28, maxWidth: 600 }}>
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: isMobile ? 20 : 28, maxWidth: 600 }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f', marginBottom: 20, marginTop: 0 }}>Edit Missing Person Report</h3>
               {missingReport ? (
                 <EditReportForm report={missingReport} onSaved={() => window.location.reload()} />
