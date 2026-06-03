@@ -72,12 +72,12 @@ export default function Home() {
           </div>
 
           <h1 className="jskmu-hero-h1" style={{ fontWeight: 300, color: '#ffffff', lineHeight: 1.3, marginBottom: 16, maxWidth: 600, letterSpacing: -0.5 }}>
-            Har chehra ek naam hai.<br />
-            <span style={{ color: '#93c5fd' }}>Har naam ek ghar hai.</span>
+            Every face has a name.<br />
+            <span style={{ color: '#93c5fd' }}>Every name has a home.</span>
           </h1>
 
           <p style={{ fontSize: 16, color: '#94a3b8', lineHeight: 1.7, maxWidth: 520, marginBottom: 32 }}>
-            India ka pehla unified database jahan missing persons aur unidentified bodies ko ek jagah search kar sakte hain. Families ke liye. Police ke liye. Sabke liye.
+            India's first unified database connecting missing persons with unidentified bodies — searchable in one place. For families. For police. For everyone.
           </p>
 
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -154,12 +154,12 @@ export default function Home() {
       {/* HOW IT WORKS */}
       <section style={{ background: '#ffffff', padding: '64px 24px', borderTop: '1px solid #e2e8f0' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 20, fontWeight: 600, color: '#1e3a5f', marginBottom: 40 }}>Kaise kaam karta hai?</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 600, color: '#1e3a5f', marginBottom: 40 }}>How It Works</h2>
           <div className="jskmu-how-grid">
             {[
-              { step: '01', title: 'Search Karo', desc: 'Koi bhi, bina login ke, missing persons ko state, city, area se search kar sakta hai. Public database sabke liye open hai.', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
-              { step: '02', title: 'Register Karo', desc: 'Family FIR copy ke saath register kare. Ek baar ₹499 payment ke baad 1 saal ke liye unidentified bodies database access milega.', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
-              { step: '03', title: 'Match Pao', desc: 'System automatically possible matches dhundta hai aur family ko SMS + Email notification bhejta hai. Har match police verified hona chahiye.', color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
+              { step: '01', title: 'Search', desc: 'Anyone can search missing persons by state, city, or area — no login required. The public database is open to all.', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+              { step: '02', title: 'Register', desc: 'Families register with an FIR copy. A one-time ₹499 payment grants one year of access to the unidentified bodies database.', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+              { step: '03', title: 'Find a Match', desc: 'The system automatically searches for possible matches and notifies families by SMS and email. Every match must be verified by the police.', color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
             ].map((item) => (
               <div key={item.step} style={{ background: item.bg, border: `1px solid ${item.border}`, borderRadius: 10, padding: 24 }}>
                 <div style={{ fontSize: 36, fontWeight: 700, color: item.color, opacity: 0.25, marginBottom: 16, lineHeight: 1 }}>{item.step}</div>
@@ -181,25 +181,25 @@ export default function Home() {
       {/* LEFT — Text */}
       <div>
         <div style={{ display: 'inline-block', background: '#fee2e2', color: '#991b1b', fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 20, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 20 }}>
-          India Mein Pehli Baar
+          A First for India
         </div>
         <h2 style={{ fontSize: 28, fontWeight: 600, color: '#1e3a5f', lineHeight: 1.35, marginBottom: 16 }}>
-          Unidentified Bodies ka<br />
-          <span style={{ color: '#dc2626' }}>National Database</span>
+          A National Database of<br />
+          <span style={{ color: '#dc2626' }}>Unidentified Bodies</span>
         </h2>
         <p style={{ fontSize: 15, color: '#475569', lineHeight: 1.8, marginBottom: 20 }}>
-          Har saal hazaron laashein India ki nadiyon, naliyon aur sadkon par milti hain — bina naam ke, bina pehchaan ke. Koi unhe dhundh raha hota hai. Koi unka intezaar kar raha hota hai.
+          Every year, thousands of bodies are found in India's rivers, drains, and roadsides — without a name, without an identity. Someone is searching for them. Someone is still waiting.
         </p>
         <p style={{ fontSize: 15, color: '#475569', lineHeight: 1.8, marginBottom: 28 }}>
-          JSKMU India ka <strong>pehla platform</strong> hai jo missing persons aur unidentified bodies ko ek hi jagah connect karta hai — automatically.
+          JSKMU is India's <strong>first platform</strong> that connects missing persons and unidentified bodies in one place — automatically.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[
-            'Contributor network — Divers, NGOs aur police seedha add karte hain',
-            'Blurred photos — sirf verified family dekh sakti hai',
-            'Automatic matching — age, gender, state ke basis par',
-            'SMS + Email alert — match milte hi family ko notify',
+            'Contributor network — divers, NGOs, and police add records directly',
+            'Blurred photos — visible only to verified families',
+            'Automatic matching — based on age, gender, and state',
+            'SMS and email alerts — families are notified the moment a match is found',
           ].map((point, i) => (
             <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
               <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
@@ -216,17 +216,17 @@ export default function Home() {
 
         <div style={{ background: '#ffffff', border: '1px solid #fecaca', borderRadius: 12, padding: 24, borderLeft: '4px solid #dc2626' }}>
           <div style={{ fontSize: 36, fontWeight: 700, color: '#dc2626', marginBottom: 4 }}>40,000+</div>
-          <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>Unidentified bodies har saal India mein milti hain. Inme se hazaron kabhi identify nahi ho paati.</div>
+          <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>Unidentified bodies are found across India every year. Thousands are never identified.</div>
         </div>
 
         <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 12, padding: 24, borderLeft: '4px solid #2563eb' }}>
           <div style={{ fontSize: 36, fontWeight: 700, color: '#2563eb', marginBottom: 4 }}>0</div>
-          <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>National databases jo missing persons aur unidentified bodies ko automatically match karte hain. <strong>JSKMU pehla hoga.</strong></div>
+          <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>National databases that automatically match missing persons with unidentified bodies. <strong>JSKMU will be the first.</strong></div>
         </div>
 
         <div style={{ background: '#ffffff', border: '1px solid #bbf7d0', borderRadius: 12, padding: 24, borderLeft: '4px solid #15803d' }}>
           <div style={{ fontSize: 36, fontWeight: 700, color: '#15803d', marginBottom: 4 }}>JSK</div>
-          <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>Is platform ka naam Jaswant Singh Kalra aur unke kaam ko yaad karta hai. Poori kahani padhne ke liye About page visit karein.</div>
+          <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>This platform is named in memory of Jaswant Singh Khalra and his work. Read the full story on the About page.</div>
         </div>
 
       </div>
