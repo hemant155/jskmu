@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import Navbar from '@/components/Navbar'
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' })
@@ -69,23 +70,8 @@ if (profile?.role === 'admin') {
   return (
     <main style={{ minHeight: '100vh', background: '#f0f4f8', fontFamily: 'Arial, sans-serif' }}>
 
-      <nav style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '0 24px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: 64 }}>
-          <Link href="/" style={{ textDecoration: 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
-              <span style={{ fontSize: 22, fontWeight: 700, color: '#1e3a5f' }}>JSK</span>
-              <span style={{ fontSize: 22, fontWeight: 700, color: '#2563eb' }}>MU</span>
-            </div>
-            <div style={{ fontSize: 10, color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: -2 }}>
-              Missing & Unidentified Database
-            </div>
-          </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Link href="/search" style={{ fontSize: 14, color: '#475569', padding: '8px 16px', textDecoration: 'none' }}>Search</Link>
-            <Link href="/register" style={{ fontSize: 14, background: '#1e3a5f', color: '#fff', padding: '9px 20px', borderRadius: 6, textDecoration: 'none', fontWeight: 600 }}>Register</Link>
-          </div>
-        </div>
-      </nav>
+      {/* NAVBAR (shared component — handles top bar + nav + mobile menu) */}
+      <Navbar active="Login" />
 
       <div style={{ background: '#1e3a5f', padding: '32px 24px' }}>
         <div style={{ maxWidth: 440, margin: '0 auto' }}>
@@ -166,7 +152,7 @@ if (profile?.role === 'admin') {
       </div>
 
       <div style={{ background: '#0f2744', padding: '24px', marginTop: 40 }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>JSKMU</span>
           <span style={{ fontSize: 12, color: '#475569' }}>Emergency: 112 · Not affiliated with any government body</span>
         </div>
