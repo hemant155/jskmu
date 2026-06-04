@@ -141,8 +141,8 @@ export default function AboutPage() {
           <h2 style={{ fontSize: 20, fontWeight: 600, color: '#1e3a5f', marginBottom: 16 }}>Contact & Legal</h2>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
             {[
-              { label: 'General Enquiries', value: 'contact@jskmu.com' },
-              { label: 'Report an Issue', value: 'report@jskmu.com' },
+              { label: 'General Enquiries', value: 'contact@jskmu.in' },
+              { label: 'Report an Issue', value: 'report@jskmu.in' },
               { label: 'Emergency', value: '112' },
               { label: 'Missing Persons Helpline', value: '1094' },
             ].map((item) => (
