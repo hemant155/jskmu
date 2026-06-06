@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { findMatchesForPerson } from '@/lib/matching'
 
 // Shared hook: detect mobile viewport
 function useIsMobile() {
@@ -81,14 +82,264 @@ function BodiesTab({ missingReport }) {
                     <span style={{ fontSize: 13, color: '#475569' }}>Location: {body.city}, {body.state}</span>
                   </div>
                   <p style={{ margin: 0, fontSize: 13, color: '#64748b', lineHeight: 1.6 }}>{body.description}</p>
-                  <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button style={{ padding: '6px 14px', background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontWeight: 500 }}>View Full Details</button>
-                    <button style={{ padding: '6px 14px', background: '#fff', color: '#475569', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>Not a Match</button>
-                  </div>
                 </div>
               </div>
             )
           })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+function MatchesTab({ missingReport, isMobile, onMatchCountChange }) {
+  const [loading, setLoading] = useState(true)
+  const [scanning, setScanning] = useState(false)
+  const [results, setResults] = useState([])      // [{ body, score, breakdown, matchRow }]
+  const [error, setError] = useState('')
+  const [scannedOnce, setScannedOnce] = useState(false)
+
+  // Load any matches already saved in the DB for this person
+  useEffect(() => {
+    const loadExisting = async () => {
+      if (!missingReport) { setLoading(false); return }
+      try {
+        const { data: matchRows } = await supabase
+          .from('matches')
+          .select('*')
+          .eq('missing_person_id', missingReport.id)
+          .order('match_score', { ascending: false })
+
+        if (matchRows && matchRows.length > 0) {
+          const bodyIds = matchRows.map(m => m.unidentified_body_id)
+          const { data: bodies } = await supabase
+            .from('unidentified_bodies')
+            .select('*')
+            .in('id', bodyIds)
+
+          const byId = {}
+          ;(bodies || []).forEach(b => { byId[b.id] = b })
+
+          const mapped = matchRows
+            .filter(m => byId[m.unidentified_body_id])
+            .map(m => ({
+              body: byId[m.unidentified_body_id],
+              score: m.match_score,
+              breakdown: null,
+              matchRow: m,
+            }))
+          setResults(mapped)
+          if (onMatchCountChange) onMatchCountChange(mapped.filter(r => r.matchRow.status === 'pending').length)
+        }
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadExisting()
+  }, [missingReport])
+
+  // Run the matching scan on demand
+  const handleFindMatches = async () => {
+    if (!missingReport) return
+    setScanning(true)
+    setError('')
+    try {
+      const { data: bodies } = await supabase
+        .from('unidentified_bodies')
+        .select('*')
+
+      const found = findMatchesForPerson(missingReport, bodies || [])
+
+      // Don't overwrite user decisions: keep existing rows' status
+      const { data: existing } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('missing_person_id', missingReport.id)
+
+      const existingByBody = {}
+      ;(existing || []).forEach(m => { existingByBody[m.unidentified_body_id] = m })
+
+      const finalResults = []
+      for (const r of found) {
+        const already = existingByBody[r.body.id]
+        if (already) {
+          finalResults.push({ body: r.body, score: r.score, breakdown: r.breakdown, matchRow: already })
+        } else {
+          const { data: inserted, error: insErr } = await supabase
+            .from('matches')
+            .insert({
+              missing_person_id: missingReport.id,
+              unidentified_body_id: r.body.id,
+              match_score: r.score,
+              status: 'pending',
+            })
+            .select()
+            .single()
+          if (insErr) throw insErr
+          finalResults.push({ body: r.body, score: r.score, breakdown: r.breakdown, matchRow: inserted })
+        }
+      }
+
+      finalResults.sort((a, b) => b.score - a.score)
+      setResults(finalResults)
+      setScannedOnce(true)
+      if (onMatchCountChange) onMatchCountChange(finalResults.filter(r => r.matchRow.status === 'pending').length)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  const updateStatus = async (matchRow, newStatus) => {
+    try {
+      const { error } = await supabase
+        .from('matches')
+        .update({ status: newStatus })
+        .eq('id', matchRow.id)
+      if (error) throw error
+      setResults(prev => {
+        const next = prev.map(r => r.matchRow.id === matchRow.id
+          ? { ...r, matchRow: { ...r.matchRow, status: newStatus } }
+          : r)
+        if (onMatchCountChange) onMatchCountChange(next.filter(r => r.matchRow.status === 'pending').length)
+        return next
+      })
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Loading...</div>
+
+  if (!missingReport) {
+    return (
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '40px 24px', textAlign: 'center' }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>📝</div>
+        <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f', marginBottom: 8 }}>Add a report first</h3>
+        <p style={{ fontSize: 14, color: '#64748b' }}>Once you add a missing person report, you can scan for possible matches.</p>
+      </div>
+    )
+  }
+
+  const scoreColor = (s) => s >= 80 ? '#15803d' : s >= 70 ? '#b45309' : '#64748b'
+
+  return (
+    <div>
+      <p style={{ fontSize: 14, color: '#475569', marginBottom: 16 }}>
+        These are algorithmically generated suggestions based on gender, age, state, city and date — <strong>not confirmed identifications</strong>. Review the descriptions carefully and contact your local police station to verify any possible match.
+      </p>
+
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button
+          onClick={handleFindMatches}
+          disabled={scanning}
+          style={{ padding: '11px 24px', background: scanning ? '#94a3b8' : '#1e3a5f', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: scanning ? 'not-allowed' : 'pointer' }}>
+          {scanning ? 'Scanning...' : '🔍 Find Matches'}
+        </button>
+        {scannedOnce && <span style={{ fontSize: 13, color: '#64748b' }}>Scan complete — {results.length} possible match(es) found.</span>}
+      </div>
+
+      {error && <p style={{ color: '#dc2626', fontSize: 13, marginBottom: 16 }}>{error}</p>}
+
+      {results.length === 0 ? (
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '40px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f', marginBottom: 8 }}>No matches found yet</h3>
+          <p style={{ fontSize: 14, color: '#64748b' }}>Click "Find Matches" to scan current unidentified body records against your report.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: 16 }}>
+          {results.map(({ body, score, breakdown, matchRow }) => (
+            <div key={matchRow.id} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: isMobile ? 16 : 24, opacity: matchRow.status === 'rejected' ? 0.55 : 1 }}>
+
+              {/* Header: score + status */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 22, fontWeight: 700, color: scoreColor(score) }}>{score}%</span>
+                  <span style={{ fontSize: 13, color: '#64748b' }}>match</span>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 12px', borderRadius: 20,
+                  background: matchRow.status === 'confirmed' ? '#dcfce7' : matchRow.status === 'rejected' ? '#fee2e2' : '#fef3c7',
+                  color: matchRow.status === 'confirmed' ? '#15803d' : matchRow.status === 'rejected' ? '#dc2626' : '#92400e' }}>
+                  {matchRow.status === 'confirmed' ? 'Confirmed' : matchRow.status === 'rejected' ? 'Rejected' : 'Pending Review'}
+                </span>
+              </div>
+
+              {/* Side-by-side comparison */}
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                {/* Your report */}
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#1e40af', letterSpacing: '0.05em', marginBottom: 10 }}>YOUR REPORT</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 8 }}>{missingReport.full_name}</div>
+                  <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.8 }}>
+                    Gender: {missingReport.gender}<br />
+                    Age: {missingReport.age}<br />
+                    Location: {missingReport.city}, {missingReport.state}<br />
+                    Last seen: {missingReport.last_seen_date}
+                  </div>
+                  {missingReport.description && (
+                    <p style={{ margin: '10px 0 0', fontSize: 13, color: '#64748b', lineHeight: 1.6, borderTop: '1px solid #bfdbfe', paddingTop: 10 }}>
+                      {missingReport.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Body record */}
+                <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 8, padding: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#991b1b', letterSpacing: '0.05em', marginBottom: 10 }}>UNIDENTIFIED RECORD</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 8 }}>Case #{body.case_number || body.id.slice(0, 8).toUpperCase()}</div>
+                  <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.8 }}>
+                    Gender: {body.gender}<br />
+                    Est. age: {body.estimated_age_min}–{body.estimated_age_max}<br />
+                    Location: {body.city}, {body.state}<br />
+                    Found: {body.found_date}
+                  </div>
+                  {body.description && (
+                    <p style={{ margin: '10px 0 0', fontSize: 13, color: '#64748b', lineHeight: 1.6, borderTop: '1px solid #fecaca', paddingTop: 10 }}>
+                      {body.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Score breakdown (only available right after a fresh scan) */}
+              {breakdown && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+                  {[
+                    { label: 'Gender', val: breakdown.gender },
+                    { label: 'Age', val: breakdown.age },
+                    { label: 'State', val: breakdown.state },
+                    { label: 'City', val: breakdown.city },
+                  ].map(b => (
+                    <span key={b.label} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: b.val > 0 ? '#f0fdf4' : '#f1f5f9', color: b.val > 0 ? '#15803d' : '#94a3b8', fontWeight: 500 }}>
+                      {b.label} {b.val > 0 ? `+${b.val}` : '—'}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <Link href={`/missing/${body.id}`} style={{ padding: '8px 18px', background: '#1e3a5f', color: '#fff', borderRadius: 6, fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
+                  View Full Details
+                </Link>
+                {matchRow.status !== 'confirmed' && (
+                  <button onClick={() => updateStatus(matchRow, 'confirmed')} style={{ padding: '8px 18px', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    This Could Be Them ✓
+                  </button>
+                )}
+                {matchRow.status !== 'rejected' && (
+                  <button onClick={() => updateStatus(matchRow, 'rejected')} style={{ padding: '8px 18px', background: '#fff', color: '#475569', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>
+                    Not a Match
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -251,7 +502,7 @@ export default function DashboardPage() {
 
       const { data: report } = await supabase
         .from('missing_persons')
-        .select('created_at')
+        .select('id, created_at')
         .eq('reported_by', session.user.id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -259,19 +510,27 @@ export default function DashboardPage() {
 
       let daysSince = 0
       let daysRemaining = 0
+      let matchesCount = 0
 
       if (report) {
         const created = new Date(report.created_at)
         const now = new Date()
         daysSince = Math.floor((now - created) / (1000 * 60 * 60 * 24))
         daysRemaining = Math.max(0, 365 - daysSince)
+
+        const { count: pendingCount } = await supabase
+          .from('matches')
+          .select('*', { count: 'exact', head: true })
+          .eq('missing_person_id', report.id)
+          .eq('status', 'pending')
+        matchesCount = pendingCount || 0
       }
 
       setStats({
         daysSince,
         bodiesCount: bodiesCount || 0,
         daysRemaining,
-        matchesCount: 0
+        matchesCount
       })
     }
     fetchStats()
@@ -309,9 +568,6 @@ export default function DashboardPage() {
             <div style={{ background: '#dcfce7', color: '#15803d', fontSize: 12, fontWeight: 600, padding: '6px 14px', borderRadius: 20 }}>
               ✓ Verified Account
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.1)', color: '#93c5fd', fontSize: 12, padding: '6px 14px', borderRadius: 20 }}>
-              Access expires: May 2027
-            </div>
           </div>
         </div>
       </div>
@@ -346,7 +602,7 @@ export default function DashboardPage() {
               <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '16px 20px', marginBottom: 24, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a', marginTop: 6, flexShrink: 0 }}></div>
                 <div>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#15803d' }}>{stats.matchesCount} Possible Matches Found</p>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#15803d' }}>{stats.matchesCount} Possible Match(es) Awaiting Review</p>
                   <p style={{ margin: '4px 0 0', fontSize: 13, color: '#16a34a' }}>
                     Our system has found potential matches for your report. Please review them and contact local police to verify.
                   </p>
@@ -362,7 +618,7 @@ export default function DashboardPage() {
               {[
                 { label: 'Days Since Report', value: String(stats.daysSince), color: '#1e3a5f', bg: '#eff6ff', border: '#bfdbfe' },
                 { label: 'Possible Matches', value: String(stats.matchesCount), color: '#dc2626', bg: '#fff5f5', border: '#fecaca' },
-                { label: 'Bodies Reviewed', value: String(stats.bodiesCount), color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+                { label: 'Bodies in Database', value: String(stats.bodiesCount), color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
                 { label: 'Access Remaining', value: `${stats.daysRemaining} days`, color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
               ].map(stat => (
                 <div key={stat.label} style={{ background: stat.bg, border: `1px solid ${stat.border}`, borderRadius: 10, padding: '18px 20px' }}>
@@ -405,23 +661,25 @@ export default function DashboardPage() {
                 </button>
               </div>
 
-              {/* RECENT ACTIVITY */}
+              {/* HOW MATCHING WORKS */}
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 24 }}>
-                <h3 style={{ fontSize: 15, fontWeight: 600, color: '#1e3a5f', marginBottom: 16, marginTop: 0 }}>Recent Activity</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 600, color: '#1e3a5f', marginBottom: 16, marginTop: 0 }}>How Matching Works</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {[
-                    { date: 'Today', text: 'System scanned new unidentified body records', type: 'scan' },
-                    { date: '2 weeks ago', text: 'Your report was submitted', type: 'register' },
-                  ].map((item, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 14, paddingBottom: 16, borderBottom: i < 1 ? '1px solid #f1f5f9' : 'none', paddingTop: i > 0 ? 16 : 0 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: item.type === 'match' ? '#dc2626' : item.type === 'verify' ? '#15803d' : '#94a3b8', flexShrink: 0, marginTop: 5 }}></div>
-                      <div>
-                        <p style={{ margin: 0, fontSize: 13, color: '#334155' }}>{item.text}</p>
-                        <p style={{ margin: '3px 0 0', fontSize: 11, color: '#94a3b8' }}>{item.date}</p>
-                      </div>
+                    'Go to the Matches tab and click "Find Matches".',
+                    'Our system compares your report against all unidentified body records using gender, age, state, city and date.',
+                    'Review each suggestion and the side-by-side description carefully.',
+                    'If a record could be your loved one, contact your local police with the case number to verify.',
+                  ].map((text, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#1e3a5f', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
+                      <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.6 }}>{text}</p>
                     </div>
                   ))}
                 </div>
+                <button onClick={() => setActiveTab('matches')} style={{ marginTop: 16, width: '100%', padding: '9px', border: 'none', borderRadius: 6, background: '#1e3a5f', fontSize: 13, cursor: 'pointer', color: '#fff', fontWeight: 600 }}>
+                  Go to Matches →
+                </button>
               </div>
             </div>
           </div>
@@ -434,16 +692,11 @@ export default function DashboardPage() {
 
         {/* MATCHES TAB */}
         {activeTab === 'matches' && (
-          <div>
-            <p style={{ fontSize: 14, color: '#475569', marginBottom: 20 }}>
-              These are algorithmically generated matches based on age, gender, state and physical description. These are not confirmed identifications. Please contact your local police station to verify.
-            </p>
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '40px 24px', textAlign: 'center' }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
-              <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f', marginBottom: 8 }}>No matches found yet</h3>
-              <p style={{ fontSize: 14, color: '#64748b' }}>Our system continuously scans unidentified body records. You will be notified when a potential match is found.</p>
-            </div>
-          </div>
+          <MatchesTab
+            missingReport={missingReport}
+            isMobile={isMobile}
+            onMatchCountChange={(n) => setStats(s => ({ ...s, matchesCount: n }))}
+          />
         )}
 
         {/* REPORT TAB */}
@@ -484,6 +737,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
+              <p style={{ fontSize: 11, color: '#94a3b8', margin: '14px 0 0' }}>Note: Notification delivery will be enabled soon.</p>
             </div>
 
             <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 10, padding: 20 }}>

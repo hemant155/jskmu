@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import Navbar from '@/components/Navbar'
+import HeroButtons from '@/components/HeroButtons'
 
 export default function Home() {
   return (
@@ -80,14 +82,7 @@ export default function Home() {
             India's first unified database connecting missing persons with unidentified bodies — searchable in one place. For families. For police. For everyone.
           </p>
 
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <Link href="/search" style={{ background: '#ffffff', color: '#1e3a5f', padding: '12px 28px', borderRadius: 6, textDecoration: 'none', fontWeight: 600, fontSize: 15 }}>
-              Search Missing Persons
-            </Link>
-            <Link href="/register" style={{ background: 'transparent', color: '#ffffff', padding: '12px 28px', borderRadius: 6, textDecoration: 'none', fontWeight: 500, fontSize: 15, border: '1px solid rgba(255,255,255,0.3)' }}>
-              Report a Missing Person
-            </Link>
-          </div>
+          <HeroButtons />
         </div>
       </section>
 
