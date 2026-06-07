@@ -1,10 +1,25 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+
+// Loads the Razorpay checkout script once, returns a promise that resolves when ready.
+function loadRazorpayScript() {
+  return new Promise((resolve) => {
+    if (typeof window !== 'undefined' && window.Razorpay) {
+      resolve(true)
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+}
 
 export default function RegisterPage() {
   const [step, setStep] = useState(1)
@@ -21,12 +36,16 @@ export default function RegisterPage() {
 
   const router = useRouter()
 
-  const handleRegister = async () => {
+  // Preload Razorpay script so the popup opens instantly when needed
+  useEffect(() => {
+    loadRazorpayScript()
+  }, [])
+
+  // ─── CONTRIBUTOR: free, no payment ───
+  const handleContributorRegister = async () => {
     setLoading(true)
     setAuthError('')
     try {
-      // Create the Supabase Auth user. The database trigger reads this
-      // metadata and creates the matching profile row automatically.
       const { error: signUpError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
@@ -34,19 +53,114 @@ export default function RegisterPage() {
           data: {
             full_name: form.name,
             phone: form.phone,
-            role: role, // 'family' or 'contributor'
+            role: 'contributor',
+            fir_number: null,
+          }
+        }
+      })
+      if (signUpError) throw signUpError
+      router.push('/register/success')
+    } catch (err) {
+      setAuthError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ─── FAMILY: create account, then Razorpay payment, then verify ───
+  const handleFamilyRegisterAndPay = async () => {
+    setLoading(true)
+    setAuthError('')
+    try {
+      // 1. Create the auth user (trigger creates the profile from metadata)
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: {
+            full_name: form.name,
+            phone: form.phone,
+            role: 'family',
             fir_number: form.firNumber || null,
           }
         }
       })
       if (signUpError) throw signUpError
 
-      // Both family and contributor land on the success page.
-      // (Payment for families will be integrated post-launch.)
-      router.push('/register/success')
+      const userId = signUpData.user?.id
+      if (!userId) throw new Error('Could not create account. Please try again.')
+
+      // 2. Make sure the Razorpay script is ready
+      const ok = await loadRazorpayScript()
+      if (!ok) throw new Error('Could not load payment gateway. Check your connection and try again.')
+
+      // 3. Create an order on the server
+      const orderRes = await fetch('/api/payment/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: 499, receipt: `jskmu_${userId.slice(0, 8)}` }),
+      })
+      const orderData = await orderRes.json()
+      if (!orderData.success) throw new Error(orderData.error || 'Could not start payment.')
+
+      // 4. Open the Razorpay checkout popup
+      const rzp = new window.Razorpay({
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: orderData.order.amount,
+        currency: 'INR',
+        name: 'JSKMU',
+        description: 'Family Registration — 1 year access',
+        order_id: orderData.order.id,
+        prefill: {
+          name: form.name,
+          email: form.email,
+          contact: form.phone,
+        },
+        theme: { color: '#1e3a5f' },
+        handler: async (response) => {
+          // 5. Verify the payment on the server
+          try {
+            const verifyRes = await fetch('/api/payment/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                user_id: userId,
+              }),
+            })
+            const verifyData = await verifyRes.json()
+            if (verifyData.success) {
+              router.push('/register/success')
+            } else {
+              setAuthError('Payment received but verification failed. Please contact support@jskmu.in with your payment ID.')
+              setLoading(false)
+            }
+          } catch (err) {
+            setAuthError('Payment verification error. Please contact support@jskmu.in.')
+            setLoading(false)
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            // User closed the popup without paying
+            setAuthError('Payment was cancelled. Your account was created — you can log in and complete payment later.')
+            setLoading(false)
+          },
+        },
+      })
+
+      rzp.on('payment.failed', (resp) => {
+        setAuthError(resp.error?.description || 'Payment failed. Please try again.')
+        setLoading(false)
+      })
+
+      rzp.open()
+      // Note: loading stays true until handler/dismiss/failed fires.
+
     } catch (err) {
       setAuthError(err.message)
-    } finally {
       setLoading(false)
     }
   }
@@ -301,7 +415,7 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* STEP 4 — PAYMENT */}
+        {/* STEP 4 — PAYMENT (family) / REVIEW (contributor) */}
         {step === 4 && (
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 28 }}>
             {role === 'family' ? (
@@ -329,13 +443,14 @@ export default function RegisterPage() {
                 )}
 
                 <button
-                  onClick={() => { setErrors({}); setStep(3) }}
-                  style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', fontSize: 14, cursor: 'pointer', color: '#475569', marginBottom: 12 }}>
+                  onClick={() => { setErrors({}); setAuthError(''); setStep(3) }}
+                  disabled={loading}
+                  style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer', color: '#475569', marginBottom: 12 }}>
                   ← Back
                 </button>
 
                 <button
-                  onClick={handleRegister}
+                  onClick={handleFamilyRegisterAndPay}
                   disabled={loading}
                   style={{
                     width: '100%', padding: '14px', border: 'none', borderRadius: 8,
@@ -343,11 +458,11 @@ export default function RegisterPage() {
                     color: '#fff', fontSize: 15, fontWeight: 600,
                     cursor: loading ? 'not-allowed' : 'pointer'
                   }}>
-                  {loading ? 'Creating account...' : 'Create Account & Pay ₹499'}
+                  {loading ? 'Processing...' : 'Pay ₹499 & Create Account'}
                 </button>
 
                 <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', marginTop: 12 }}>
-                  🔒 Secure payment · UPI, Cards, Net Banking accepted
+                  🔒 Secure payment via Razorpay · UPI, Cards, Net Banking
                 </p>
               </>
             ) : (
@@ -391,12 +506,13 @@ export default function RegisterPage() {
 
                 <div style={{ display: 'flex', gap: 12 }}>
                   <button
-                    onClick={() => { setErrors({}); setStep(3) }}
-                    style={{ flex: 1, padding: '12px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', fontSize: 14, cursor: 'pointer', color: '#475569' }}>
+                    onClick={() => { setErrors({}); setAuthError(''); setStep(3) }}
+                    disabled={loading}
+                    style={{ flex: 1, padding: '12px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer', color: '#475569' }}>
                     ← Back
                   </button>
                   <button
-                    onClick={handleRegister}
+                    onClick={handleContributorRegister}
                     disabled={loading}
                     style={{
                       flex: 2, padding: '12px', border: 'none', borderRadius: 8,
