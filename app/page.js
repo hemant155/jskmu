@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import HeroButtons from '@/components/HeroButtons'
+import Footer from '@/components/Footer'
 
 export default function Home() {
   return (
@@ -244,17 +245,7 @@ export default function Home() {
 </section>
 
       {/* FOOTER */}
-      <footer style={{ background: '#0f2744', padding: '24px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>JSKMU</span>
-            <span style={{ fontSize: 12, color: '#475569', marginLeft: 12 }}>Jaswant Singh Khalra Missing & Unidentified Database</span>
-          </div>
-          <div style={{ fontSize: 12, color: '#475569' }}>
-            Emergency: 112 · Not affiliated with any government body
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
     </main>
   )
