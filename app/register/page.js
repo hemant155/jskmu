@@ -98,7 +98,7 @@ export default function RegisterPage() {
       const orderRes = await fetch('/api/payment/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: 499, receipt: `jskmu_${userId.slice(0, 8)}` }),
+        body: JSON.stringify({ amount: 2, receipt: `jskmu_${userId.slice(0, 8)}` }),
       })
       const orderData = await orderRes.json()
       if (!orderData.success) throw new Error(orderData.error || 'Could not start payment.')
