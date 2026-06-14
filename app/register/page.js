@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase-browser'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
@@ -98,7 +98,7 @@ export default function RegisterPage() {
       const orderRes = await fetch('/api/payment/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: 2, receipt: `jskmu_${userId.slice(0, 8)}` }),
+        body: JSON.stringify({ amount: 499, receipt: `jskmu_${userId.slice(0, 8)}` }),
       })
       const orderData = await orderRes.json()
       if (!orderData.success) throw new Error(orderData.error || 'Could not start payment.')
@@ -120,14 +120,17 @@ export default function RegisterPage() {
         handler: async (response) => {
           // 5. Verify the payment on the server
           try {
+            const { data: { session } } = await supabase.auth.getSession()
             const verifyRes = await fetch('/api/payment/verify', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`,
+              },
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
-                user_id: userId,
               }),
             })
             const verifyData = await verifyRes.json()
