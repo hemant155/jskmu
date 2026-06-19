@@ -311,11 +311,11 @@ function AddBodyForm({ onSuccess, isMobile }) {
       if (photo) {
         const uploadFormData = new FormData()
         uploadFormData.append('file', photo)
-        uploadFormData.append('userId', session.user.id)
         uploadFormData.append('bucket', 'body-photos')
 
         const uploadRes = await fetch('/api/upload', {
           method: 'POST',
+          headers: { 'Authorization': `Bearer ${session.access_token}` },
           body: uploadFormData
         })
         const uploadData = await uploadRes.json()
