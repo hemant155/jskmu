@@ -6,6 +6,10 @@ import { supabase } from '@/lib/supabase-browser'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
+// 2-week launch promo — family registration is free, Razorpay payment is skipped.
+// Flip to false to restore the paid flow with no other changes needed.
+const FREE_LAUNCH_MODE = true
+
 // Loads the Razorpay checkout script once, returns a promise that resolves when ready.
 function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -36,7 +40,7 @@ export default function RegisterPage() {
 
   const router = useRouter()
 
-  // Preload Razorpay script so the popup opens instantly when needed
+  // Preload Razorpay script so the popup opens instantly when needed (paid mode)
   useEffect(() => {
     loadRazorpayScript()
   }, [])
@@ -59,7 +63,7 @@ export default function RegisterPage() {
         }
       })
       if (signUpError) throw signUpError
-      router.push('/register/success')
+      router.push('/register/success?role=contributor')
     } catch (err) {
       setAuthError(err.message)
     } finally {
@@ -67,7 +71,53 @@ export default function RegisterPage() {
     }
   }
 
-  // ─── FAMILY: create account, then Razorpay payment, then verify ───
+  // ─── FAMILY (FREE LAUNCH MODE): create account, skip payment, grant 30-day access ───
+  const handleFamilyRegisterFree = async () => {
+    setLoading(true)
+    setAuthError('')
+    try {
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: {
+            full_name: form.name,
+            phone: form.phone,
+            role: 'family',
+            fir_number: form.firNumber || null,
+          }
+        }
+      })
+      if (signUpError) throw signUpError
+
+      const userId = signUpData.user?.id
+      if (!userId) throw new Error('Could not create account. Please try again.')
+
+      // Use the session returned by signUp directly — a separate getSession()
+      // call here can return a stale session already sitting in the browser
+      // (e.g. from a previous login), not the new family account's session.
+      const accessToken = signUpData.session?.access_token
+      if (!accessToken) throw new Error('Account created, but could not activate automatically. Please log in to continue.')
+
+      const activateRes = await fetch('/api/register/activate-free', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      })
+      const activateData = await activateRes.json()
+      if (!activateData.success) throw new Error(activateData.error || 'Could not activate account.')
+
+      router.push('/register/success?role=family')
+    } catch (err) {
+      setAuthError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ─── FAMILY (PAID MODE — disabled while FREE_LAUNCH_MODE is true): create account, then Razorpay payment, then verify ───
   const handleFamilyRegisterAndPay = async () => {
     setLoading(true)
     setAuthError('')
@@ -135,7 +185,7 @@ export default function RegisterPage() {
             })
             const verifyData = await verifyRes.json()
             if (verifyData.success) {
-              router.push('/register/success')
+              router.push('/register/success?role=family')
             } else {
               setAuthError('Payment received but verification failed. Please contact support@jskmu.in with your payment ID.')
               setLoading(false)
@@ -147,7 +197,6 @@ export default function RegisterPage() {
         },
         modal: {
           ondismiss: () => {
-            // User closed the popup without paying
             setAuthError('Payment was cancelled. Your account was created — you can log in and complete payment later.')
             setLoading(false)
           },
@@ -160,8 +209,6 @@ export default function RegisterPage() {
       })
 
       rzp.open()
-      // Note: loading stays true until handler/dismiss/failed fires.
-
     } catch (err) {
       setAuthError(err.message)
       setLoading(false)
@@ -266,7 +313,7 @@ export default function RegisterPage() {
                     <div style={{ fontSize: 15, fontWeight: 600, color: '#1e3a5f', marginBottom: 6 }}>👨‍👩‍👧 Family Member</div>
                     <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.6 }}>I have filed an FIR and want to report my missing person.</div>
                     <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {['FIR copy required', '₹499 one-time', '1 year access'].map(tag => (
+                      {(FREE_LAUNCH_MODE ? ['FIR copy required', 'Free for 2 weeks', '30 day access'] : ['FIR copy required', '₹499 one-time', '1 year access']).map(tag => (
                         <span key={tag} style={{ fontSize: 11, background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: 20, fontWeight: 500 }}>{tag}</span>
                       ))}
                     </div>
@@ -363,18 +410,8 @@ export default function RegisterPage() {
                   <input value={form.firNumber} onChange={e => set('firNumber', e.target.value)} placeholder="e.g. FIR/2024/MH/001234" style={inputStyle('firNumber')} />
                   {errors.firNumber && <p style={{ color: '#dc2626', fontSize: 11, margin: '4px 0 0' }}>{errors.firNumber}</p>}
                 </div>
-                <div>
-                  <label style={{ fontSize: 12, color: '#64748b', fontWeight: 500, display: 'block', marginBottom: 6 }}>FIR COPY UPLOAD *</label>
-                  <div style={{ border: '2px dashed #e2e8f0', borderRadius: 8, padding: '24px', textAlign: 'center', background: '#f8fafc', cursor: 'pointer' }}>
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>📄</div>
-                    <div style={{ fontSize: 14, color: '#475569', marginBottom: 4 }}>Click to upload</div>
-                    <div style={{ fontSize: 12, color: '#94a3b8' }}>PDF, JPG, PNG — max 5MB</div>
-                    <input type="file" accept=".pdf,.jpg,.png" style={{ display: 'none' }} />
-                  </div>
-                  {errors.firFile && <p style={{ color: '#dc2626', fontSize: 11, margin: '4px 0 0' }}>{errors.firFile}</p>}
-                </div>
                 <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '12px 16px' }}>
-                  <p style={{ margin: 0, fontSize: 12, color: '#92400e' }}>🔒 The FIR document is kept in encrypted storage and used only for admin verification.</p>
+                  <p style={{ margin: 0, fontSize: 12, color: '#92400e' }}>📋 Please keep your FIR copy ready. Our team may contact you to verify it during the review process.</p>
                 </div>
               </div>
             )}
@@ -418,56 +455,105 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* STEP 4 — PAYMENT (family) / REVIEW (contributor) */}
+        {/* STEP 4 — FAMILY (free or paid) / CONTRIBUTOR review */}
         {step === 4 && (
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 28 }}>
             {role === 'family' ? (
-              <>
-                <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1e3a5f', marginBottom: 6, marginTop: 0 }}>Payment</h2>
-                <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24, marginTop: 0 }}>One-time fee — 1 year access</p>
+              FREE_LAUNCH_MODE ? (
+                <>
+                  <h2 style={{ fontSize: 18, fontWeight: 600, color: '#15803d', marginBottom: 6, marginTop: 0 }}>Almost Done!</h2>
+                  <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24, marginTop: 0 }}>Launch offer — free for the next 2 weeks</p>
 
-                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 20, marginBottom: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <span style={{ fontSize: 14, color: '#1e40af', fontWeight: 600 }}>JSKMU Family Registration</span>
-                    <span style={{ fontSize: 22, fontWeight: 700, color: '#1e3a5f' }}>₹499</span>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: 20, marginBottom: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <span style={{ fontSize: 14, color: '#15803d', fontWeight: 600 }}>JSKMU Family Registration</span>
+                      <span style={{ fontSize: 22, fontWeight: 700, color: '#15803d' }}>Free</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#15803d', lineHeight: 1.8 }}>
+                      ✓ Add missing person report<br />
+                      ✓ Access unidentified bodies database<br />
+                      ✓ Automatic match notifications — 30 days<br />
+                      ✓ Admin verified account
+                    </div>
                   </div>
-                  <div style={{ fontSize: 12, color: '#3b82f6', lineHeight: 1.8 }}>
-                    ✓ Add missing person report<br />
-                    ✓ Access unidentified bodies database<br />
-                    ✓ Automatic match notifications — 1 year<br />
-                    ✓ Admin verified account
+
+                  {authError && (
+                    <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
+                      <p style={{ margin: 0, fontSize: 13, color: '#dc2626' }}>{authError}</p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => { setErrors({}); setAuthError(''); setStep(3) }}
+                    disabled={loading}
+                    style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer', color: '#475569', marginBottom: 12 }}>
+                    ← Back
+                  </button>
+
+                  <button
+                    onClick={handleFamilyRegisterFree}
+                    disabled={loading}
+                    style={{
+                      width: '100%', padding: '14px', border: 'none', borderRadius: 8,
+                      background: loading ? '#94a3b8' : '#15803d',
+                      color: '#fff', fontSize: 15, fontWeight: 600,
+                      cursor: loading ? 'not-allowed' : 'pointer'
+                    }}>
+                    {loading ? 'Creating Account...' : 'Create Account — Free'}
+                  </button>
+
+                  <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', marginTop: 12 }}>
+                    Free for a limited time — no payment required
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1e3a5f', marginBottom: 6, marginTop: 0 }}>Payment</h2>
+                  <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24, marginTop: 0 }}>One-time fee — 1 year access</p>
+
+                  <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 20, marginBottom: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <span style={{ fontSize: 14, color: '#1e40af', fontWeight: 600 }}>JSKMU Family Registration</span>
+                      <span style={{ fontSize: 22, fontWeight: 700, color: '#1e3a5f' }}>₹499</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#3b82f6', lineHeight: 1.8 }}>
+                      ✓ Add missing person report<br />
+                      ✓ Access unidentified bodies database<br />
+                      ✓ Automatic match notifications — 1 year<br />
+                      ✓ Admin verified account
+                    </div>
                   </div>
-                </div>
 
-                {authError && (
-                  <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
-                    <p style={{ margin: 0, fontSize: 13, color: '#dc2626' }}>{authError}</p>
-                  </div>
-                )}
+                  {authError && (
+                    <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
+                      <p style={{ margin: 0, fontSize: 13, color: '#dc2626' }}>{authError}</p>
+                    </div>
+                  )}
 
-                <button
-                  onClick={() => { setErrors({}); setAuthError(''); setStep(3) }}
-                  disabled={loading}
-                  style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer', color: '#475569', marginBottom: 12 }}>
-                  ← Back
-                </button>
+                  <button
+                    onClick={() => { setErrors({}); setAuthError(''); setStep(3) }}
+                    disabled={loading}
+                    style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer', color: '#475569', marginBottom: 12 }}>
+                    ← Back
+                  </button>
 
-                <button
-                  onClick={handleFamilyRegisterAndPay}
-                  disabled={loading}
-                  style={{
-                    width: '100%', padding: '14px', border: 'none', borderRadius: 8,
-                    background: loading ? '#94a3b8' : '#1e3a5f',
-                    color: '#fff', fontSize: 15, fontWeight: 600,
-                    cursor: loading ? 'not-allowed' : 'pointer'
-                  }}>
-                  {loading ? 'Processing...' : 'Pay ₹499 & Create Account'}
-                </button>
+                  <button
+                    onClick={handleFamilyRegisterAndPay}
+                    disabled={loading}
+                    style={{
+                      width: '100%', padding: '14px', border: 'none', borderRadius: 8,
+                      background: loading ? '#94a3b8' : '#1e3a5f',
+                      color: '#fff', fontSize: 15, fontWeight: 600,
+                      cursor: loading ? 'not-allowed' : 'pointer'
+                    }}>
+                    {loading ? 'Processing...' : 'Pay ₹499 & Create Account'}
+                  </button>
 
-                <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', marginTop: 12 }}>
-                  🔒 Secure payment via Razorpay · UPI, Cards, Net Banking
-                </p>
-              </>
+                  <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', marginTop: 12 }}>
+                    🔒 Secure payment via Razorpay · UPI, Cards, Net Banking
+                  </p>
+                </>
+              )
             ) : (
               <>
                 <h2 style={{ fontSize: 18, fontWeight: 600, color: '#15803d', marginBottom: 6, marginTop: 0 }}>

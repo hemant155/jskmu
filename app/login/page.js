@@ -50,8 +50,6 @@ const { data: profile, error: profileError } = await supabase
   .eq('id', data.user.id)
   .single()
 
-console.log('Profile fetched:', profile, 'Error:', profileError)
-
 if (profile?.role === 'admin') {
   router.push('/admin')
 } else if (profile?.role === 'contributor') {

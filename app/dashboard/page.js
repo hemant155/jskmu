@@ -500,6 +500,12 @@ export default function DashboardPage() {
         .from('unidentified_bodies')
         .select('*', { count: 'exact', head: true })
 
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('access_expires_at')
+        .eq('id', session.user.id)
+        .single()
+
       const { data: report } = await supabase
         .from('missing_persons')
         .select('id, created_at')
@@ -512,11 +518,16 @@ export default function DashboardPage() {
       let daysRemaining = 0
       let matchesCount = 0
 
+      if (profile?.access_expires_at) {
+        const expires = new Date(profile.access_expires_at)
+        const now = new Date()
+        daysRemaining = Math.max(0, Math.ceil((expires - now) / (1000 * 60 * 60 * 24)))
+      }
+
       if (report) {
         const created = new Date(report.created_at)
         const now = new Date()
         daysSince = Math.floor((now - created) / (1000 * 60 * 60 * 24))
-        daysRemaining = Math.max(0, 365 - daysSince)
 
         const { count: pendingCount } = await supabase
           .from('matches')
