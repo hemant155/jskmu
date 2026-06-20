@@ -6,6 +6,7 @@ import Footer from '@/components/Footer'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-browser'
 import { findMatchesForPerson } from '@/lib/matching'
+import { generateMissingPoster } from '@/lib/generatePoster'
 
 // Shared hook: detect mobile viewport
 function useIsMobile() {
@@ -490,6 +491,7 @@ export default function DashboardPage() {
     daysRemaining: 0,
     matchesCount: 0
   })
+  const [profilePhone, setProfilePhone] = useState(null)
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -502,9 +504,11 @@ export default function DashboardPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('access_expires_at')
+        .select('access_expires_at, phone')
         .eq('id', session.user.id)
         .single()
+
+      setProfilePhone(profile?.phone || null)
 
       const { data: report } = await supabase
         .from('missing_persons')
@@ -546,6 +550,10 @@ export default function DashboardPage() {
     }
     fetchStats()
   }, [])
+
+  const posterRecord = missingReport
+    ? { ...missingReport, name: missingReport.full_name, phone: profilePhone }
+    : null
 
   const tabStyle = (tab) => ({
     padding: isMobile ? '10px 14px' : '10px 20px',
@@ -723,7 +731,14 @@ export default function DashboardPage() {
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: isMobile ? 20 : 28, maxWidth: 600 }}>
               <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f', marginBottom: 20, marginTop: 0 }}>Edit Missing Person Report</h3>
               {missingReport ? (
-                <EditReportForm report={missingReport} onSaved={() => window.location.reload()} />
+                <>
+                  <button
+                    onClick={() => generateMissingPoster(posterRecord)}
+                    style={{ marginBottom: 16, padding: '10px 20px', background: '#15803d', color: '#fff', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                    📄 Download Poster
+                  </button>
+                  <EditReportForm report={missingReport} onSaved={() => window.location.reload()} />
+                </>
               ) : (
                 <p style={{ color: '#94a3b8', fontSize: 14 }}>No report found. Add one above.</p>
               )}

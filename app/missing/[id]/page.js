@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase-browser'
+import { generateMissingPoster } from '@/lib/generatePoster'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
@@ -114,6 +115,15 @@ export default function MissingPersonDetailPage() {
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* DOWNLOAD POSTER */}
+          <div style={{ marginBottom: 24 }}>
+            <button
+              onClick={() => generateMissingPoster({ ...person, name: person.full_name })}
+              style={{ padding: '10px 20px', background: '#1e3a5f', color: '#fff', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+              📄 Download Poster
+            </button>
           </div>
 
           {/* DETAILS GRID */}
