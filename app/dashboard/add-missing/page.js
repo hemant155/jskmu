@@ -20,6 +20,7 @@ export default function AddMissingPage() {
     area: '',
     last_seen_date: '',
     description: '',
+    distinguishing_marks: '',
     fir_number: '',
   })
 
@@ -81,6 +82,7 @@ if (photo) {
           area: form.area,
           last_seen_date: form.last_seen_date,
           description: form.description,
+          distinguishing_marks: form.distinguishing_marks,
           fir_number: form.fir_number,
           photo_url,
           status: 'active'
@@ -219,6 +221,17 @@ if (photo) {
                 onChange={e => set('description', e.target.value)}
                 placeholder="Physical appearance, clothing when last seen, identifying marks, circumstances of disappearance..."
                 style={{ ...inputStyle, minHeight: 120, resize: 'vertical' }}
+              />
+            </div>
+
+            {/* DISTINGUISHING MARKS */}
+            <div>
+              <label style={labelStyle}>DISTINGUISHING MARKS</label>
+              <textarea
+                value={form.distinguishing_marks}
+                onChange={e => set('distinguishing_marks', e.target.value)}
+                placeholder="Tattoos, scars, birthmarks, moles, deformities, dental features..."
+                style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }}
               />
             </div>
 

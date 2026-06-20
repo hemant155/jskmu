@@ -280,6 +280,7 @@ function AddBodyForm({ onSuccess, isMobile }) {
     area: '',
     found_date: '',
     description: '',
+    distinguishing_marks: '',
     case_number: '',
   })
   const [photo, setPhoto] = useState(null)
@@ -334,6 +335,7 @@ function AddBodyForm({ onSuccess, isMobile }) {
           area: form.area,
           found_date: form.found_date,
           description: form.description,
+          distinguishing_marks: form.distinguishing_marks,
           case_number: form.case_number,
           photo_url,
           status: 'unidentified'
@@ -435,6 +437,16 @@ function AddBodyForm({ onSuccess, isMobile }) {
             onChange={e => set('description', e.target.value)}
             placeholder="Height, build, skin tone, hair, clothing, identifying marks, circumstances found..."
             style={{ ...inputStyle, minHeight: 120, resize: 'vertical' }}
+          />
+        </div>
+
+        <div>
+          <label style={labelStyle}>DISTINGUISHING MARKS</label>
+          <textarea
+            value={form.distinguishing_marks}
+            onChange={e => set('distinguishing_marks', e.target.value)}
+            placeholder="Tattoos, scars, birthmarks, moles, deformities, dental features..."
+            style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }}
           />
         </div>
 
