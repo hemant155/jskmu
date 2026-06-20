@@ -100,6 +100,7 @@ export default function Navbar({ active }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <Link href="/search" style={{ fontSize: 14, color: active === 'Search' ? '#1e3a5f' : '#475569', padding: '8px 16px', textDecoration: 'none', fontWeight: active === 'Search' ? 600 : 400, borderBottom: active === 'Search' ? '2px solid #1e3a5f' : '2px solid transparent' }}>Search</Link>
               <Link href="/about" style={{ fontSize: 14, color: active === 'About' ? '#1e3a5f' : '#475569', padding: '8px 16px', textDecoration: 'none', fontWeight: active === 'About' ? 600 : 400, borderBottom: active === 'About' ? '2px solid #1e3a5f' : '2px solid transparent' }}>About</Link>
+              <Link href="/guidance" style={{ fontSize: 14, color: active === 'Guidance' ? '#1e3a5f' : '#475569', padding: '8px 16px', textDecoration: 'none', fontWeight: active === 'Guidance' ? 600 : 400, borderBottom: active === 'Guidance' ? '2px solid #1e3a5f' : '2px solid transparent' }}>Guidance</Link>
 
               {user ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8 }}>
@@ -180,6 +181,9 @@ export default function Navbar({ active }) {
             </Link>
             <Link href="/about" onClick={closeMenu} style={{ display: 'block', padding: '12px 24px', fontSize: 15, color: active === 'About' ? '#1e3a5f' : '#475569', fontWeight: active === 'About' ? 600 : 400, textDecoration: 'none', borderLeft: active === 'About' ? '3px solid #1e3a5f' : '3px solid transparent' }}>
               ℹ️ About
+            </Link>
+            <Link href="/guidance" onClick={closeMenu} style={{ display: 'block', padding: '12px 24px', fontSize: 15, color: active === 'Guidance' ? '#1e3a5f' : '#475569', fontWeight: active === 'Guidance' ? 600 : 400, textDecoration: 'none', borderLeft: active === 'Guidance' ? '3px solid #1e3a5f' : '3px solid transparent' }}>
+              📖 Guidance
             </Link>
 
             <div style={{ height: 1, background: '#f1f5f9', margin: '8px 24px' }} />

@@ -12,6 +12,7 @@ export default function Footer() {
           <span style={{ fontSize: 14, fontWeight: 700, color: '#ffffff' }}>JSKMU</span>
 
           <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+            <Link href="/guidance" style={linkStyle}>Guidance</Link>
             <Link href="/about" style={linkStyle}>About</Link>
             <Link href="/terms" style={linkStyle}>Terms</Link>
             <Link href="/privacy" style={linkStyle}>Privacy</Link>
