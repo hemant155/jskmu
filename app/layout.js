@@ -1,4 +1,5 @@
 import Script from 'next/script'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 export const metadata = {
@@ -15,6 +16,7 @@ export default function RootLayout({ children }) {
           src="https://checkout.razorpay.com/v1/checkout.js"
           strategy="lazyOnload"
         />
+        <Analytics />
       </body>
     </html>
   )
